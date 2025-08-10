@@ -76,12 +76,12 @@ const Navbar = () => {
           <div className="absolute left-1/2 transform -translate-x-1/2">
             <Link to="/" className="flex items-center">
               <img 
-                src="/src/assets/LogoImage.jpg" 
+                src="/assets/LogoImage.jpg" 
                 alt="Logo" 
                 className="h-8 w-8 rounded-full object-contain"
               />
               <img 
-                src="/src/assets/LogoWritten.jpg" 
+                src="/assets/LogoWritten.jpg" 
                 alt="Mounterra" 
                 className="h-8 ml-1"
               />
@@ -118,12 +118,12 @@ const Navbar = () => {
           {/* Mobile Logo */}
           <Link to="/" className="flex items-center">
             <img 
-              src="/src/assets/LogoImage.jpg" 
+              src="/assets/LogoImage.jpg" 
               alt="Logo" 
               className="h-8 w-8 rounded-full object-contain"
             />
             <img 
-              src="/src/assets/LogoWritten.jpg" 
+              src="/assets/LogoWritten.jpg" 
               alt="Mounterra" 
               className="h-8 ml-1"
             />

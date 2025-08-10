@@ -96,8 +96,8 @@ export const ProfileSetupPage: React.FC = () => {
           {/* Header */}
           <div className="bg-gradient-to-r from-brand-blue-600 to-brand-green-600 px-8 py-6">
             <div className="flex items-center justify-center mb-4">
-              <div className="h-12 w-12 bg-[url('/src/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
-              <div className="-ml-2 h-12 w-48 bg-[url('/src/assets/LogoWritten.jpg')] bg-contain bg-no-repeat filter brightness-0 invert"></div>
+              <div className="h-12 w-12 bg-[url('/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
+              <div className="-ml-2 h-12 w-48 bg-[url('/assets/LogoWritten.jpg')] bg-contain bg-no-repeat filter brightness-0 invert"></div>
             </div>
             <h2 className="text-2xl font-bold text-white text-center mb-2">Complete Your Profile</h2>
             <p className="text-white/90 text-center">Let's set up your vendor profile to get started</p>

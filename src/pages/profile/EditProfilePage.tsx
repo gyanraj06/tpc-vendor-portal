@@ -171,8 +171,8 @@ export const EditProfilePage: React.FC = () => {
               </button>
               
               <div className="flex items-center">
-                <div className="h-8 w-8 bg-[url('/src/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
-                <div className="h-8 w-32 bg-[url('/src/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
+                <div className="h-8 w-8 bg-[url('/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
+                <div className="h-8 w-32 bg-[url('/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
               </div>
             </div>
 

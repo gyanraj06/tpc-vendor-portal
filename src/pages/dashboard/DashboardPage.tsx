@@ -80,8 +80,8 @@ export const DashboardPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-[url('/src/assets/blueicon.png')] bg-contain bg-no-repeat"></div>
-              <div className="h-8 w-32 bg-[url('/src/assets/bluetext.png')] bg-contain bg-no-repeat"></div>
+              <div className="h-8 w-8 bg-[url('/assets/blueicon.png')] bg-contain bg-no-repeat"></div>
+              <div className="h-8 w-32 bg-[url('/assets/bluetext.png')] bg-contain bg-no-repeat"></div>
             </div>
 
             <div className="absolute left-1/2 transform -translate-x-1/2">

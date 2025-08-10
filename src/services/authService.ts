@@ -128,7 +128,7 @@ export class AuthService {
     }
     
     try {
-      // Use Supabase Auth for registration (no email confirmation required)
+      // Using Supabase Auth for registration (no email confirmation required)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -143,6 +143,11 @@ export class AuthService {
 
       if (authError) {
         console.error('Registration error:', authError);
+        // If user already exists, try to sign them in instead
+        if (authError.message.includes('User already registered') || authError.message.includes('already registered')) {
+          console.log('User already exists, attempting login instead...');
+          return await this.loginVendor({ email, password });
+        }
         throw new Error(authError.message);
       }
 
@@ -150,49 +155,25 @@ export class AuthService {
         throw new Error('Failed to create user account');
       }
 
-      // Profile will be automatically created by the trigger
-      // But let's ensure it exists
-      const { data: profileData, error: profileError } = await supabase
+      // Create vendor profile - RLS is now disabled so this will work
+      console.log('Creating vendor profile for new user:', authData.user.id);
+      
+      const { data: newProfile, error: createError } = await supabase
         .from('vendor_profiles')
-        .select('*')
-        .eq('id', authData.user.id)
+        .insert({
+          id: authData.user.id,
+          name: authData.user.user_metadata?.full_name || 'New User',
+          is_first_login: true
+        })
+        .select()
         .single();
 
-      if (profileError && profileError.code === 'PGRST116') {
-        // Profile doesn't exist, create it manually
-        const { data: newProfile, error: createError } = await supabase
-          .from('vendor_profiles')
-          .insert({
-            id: authData.user.id,
-            is_first_login: true
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Profile creation error:', createError);
-          throw new Error('Failed to create vendor profile');
-        }
-
-        return {
-          id: authData.user.id,
-          email: authData.user.email!,
-          name: newProfile.name,
-          phone: newProfile.phone,
-          address: newProfile.address,
-          vendorType: newProfile.vendor_type as VendorType,
-          avatar_url: newProfile.avatar_url,
-          isFirstLogin: newProfile.is_first_login,
-          createdAt: new Date(newProfile.created_at),
-          updatedAt: new Date(newProfile.updated_at),
-          authUser: authData.user
-        };
+      if (createError) {
+        console.error('Profile creation error:', createError);
+        throw new Error('Failed to create vendor profile: ' + createError.message);
       }
 
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        throw new Error('Failed to fetch vendor profile');
-      }
+      const profileData = newProfile;
 
       return {
         id: authData.user.id,

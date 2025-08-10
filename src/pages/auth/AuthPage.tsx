@@ -136,8 +136,8 @@ export const AuthPage: React.FC = () => {
         {/* Mobile Header */}
         <div className="bg-gradient-to-br from-brand-blue-600 to-brand-blue-700 text-white p-6 text-center">
           <div className="flex items-center justify-center mb-4">
-            <div className="h-10 w-10 bg-[url('/src/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
-            <div className="-ml-2 h-10 w-40 bg-[url('/src/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
+            <div className="h-10 w-10 bg-[url('/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
+            <div className="-ml-2 h-10 w-40 bg-[url('/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
           </div>
           <h1 className="text-xl font-bold">
             {isLoginMode ? 'Welcome Back' : 'Join TrippeChalo'}
@@ -333,8 +333,8 @@ export const AuthPage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
             <div className="relative z-10 max-w-xs lg:max-w-sm mx-auto">
               <div className="flex items-center mb-4">
-                <div className="h-8 w-8 bg-[url('/src/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
-                <div className="-ml-2 h-8 w-32 bg-[url('/src/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
+                <div className="h-8 w-8 bg-[url('/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
+                <div className="-ml-2 h-8 w-32 bg-[url('/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
               </div>
               
               <h1 className="text-lg lg:text-xl xl:text-2xl font-bold text-white mb-3">

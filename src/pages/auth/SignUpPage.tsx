@@ -64,8 +64,8 @@ export const SignUpPage: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-brand-green-600/20 to-brand-blue-600/20"></div>
         <div className="relative z-10 max-w-lg">
           <div className="flex items-center mb-12">
-            <div className="h-12 w-12 bg-[url('/src/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
-            <div className="-ml-2 h-12 w-48 bg-[url('/src/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
+            <div className="h-12 w-12 bg-[url('/assets/LogoImage.jpg')] bg-contain bg-no-repeat"></div>
+            <div className="-ml-2 h-12 w-48 bg-[url('/assets/LogoWritten.jpg')] bg-contain bg-no-repeat"></div>
           </div>
           
           <h1 className="text-4xl font-bold text-white mb-6">

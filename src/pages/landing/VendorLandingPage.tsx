@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar';
+import LogoImage from '../../assets/LogoImage.jpg';
 
 export const VendorLandingPage: React.FC = () => {
   const [activePoint, setActivePoint] = useState(0);
@@ -222,7 +223,7 @@ export const VendorLandingPage: React.FC = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <img 
-                src="/src/assets/LogoImage.jpg" 
+                src={LogoImage} 
                 alt="Logo" 
                 className="h-8 w-8 rounded-full"
               />
