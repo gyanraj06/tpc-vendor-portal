@@ -286,15 +286,6 @@ export const ProfileSetupPage: React.FC = () => {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="px-8 py-4 bg-gray-50 text-center">
-            <p className="text-xs text-brand-dark-500">
-              By completing setup, you agree to our{' '}
-              <a href="#" className="text-brand-blue-600 hover:underline">Terms of Service</a>
-              {' '}and{' '}
-              <a href="#" className="text-brand-blue-600 hover:underline">Privacy Policy</a>
-            </p>
-          </div>
         </div>
       </div>
     </div>

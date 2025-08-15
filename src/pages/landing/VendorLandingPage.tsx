@@ -301,25 +301,6 @@ Started?
         </section>
       </main>
 
-      <footer className="bg-white border-t py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <img 
-                src={LogoImage} 
-                alt="Logo" 
-                className="h-8 w-8 rounded-full"
-              />
-              <span className="ml-3 text-gray-600">© 2024 Mounterra</span>
-            </div>
-            <div className="flex space-x-6">
-              <a href="#" className="text-gray-600 hover:text-blue-600">Privacy</a>
-              <a href="#" className="text-gray-600 hover:text-blue-600">Terms</a>
-              <a href="#" className="text-gray-600 hover:text-blue-600">Support</a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
