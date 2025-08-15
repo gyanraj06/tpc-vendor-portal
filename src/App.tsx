@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { EditProfilePage } from './pages/profile/EditProfilePage';
 import { RecurringEventsVerificationPage } from './pages/events/RecurringEventsVerificationPage';
 import { CreateEventPage } from './pages/events/CreateEventPage';
+import { AllListingsPage } from './pages/listings/AllListingsPage';
 import { VendorLandingPage } from './pages/landing/VendorLandingPage';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/profile-setup" element={<ProfileSetupPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/edit-profile" element={<EditProfilePage />} />
+          <Route path="/all-listings" element={<AllListingsPage />} />
           <Route path="/recurring-events-verification" element={<RecurringEventsVerificationPage />} />
           <Route path="/create-event" element={<CreateEventPage />} />
         </Routes>

@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock, Upload, X } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, Upload, X, Loader2 } from 'lucide-react';
+import { EventService } from '../../services/eventService';
 
 export const CreateEventPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
   const [formData, setFormData] = useState({
     // Page 1
     eventName: '',
@@ -71,9 +75,56 @@ export const CreateEventPage: React.FC = () => {
     { id: 5, name: 'Review', completed: false },
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
+    } else if (currentStep === 5) {
+      await handleSubmit();
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess('');
+
+    try {
+      // Upload banner file if present
+      let bannerUrl = formData.bannerImage;
+      if (formData.bannerFile) {
+        const uploadResult = await EventService.uploadBannerFile(formData.bannerFile);
+        if (uploadResult.success && uploadResult.url) {
+          bannerUrl = uploadResult.url;
+        } else {
+          setSubmitError(uploadResult.error || 'Failed to upload banner image');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Create event data with uploaded banner URL
+      const eventDataWithBanner = {
+        ...formData,
+        bannerImage: bannerUrl || ''
+      };
+
+      const result = await EventService.createEvent(eventDataWithBanner);
+
+      if (result.success) {
+        setSubmitSuccess(result.message || 'Event created successfully!');
+        
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        setSubmitError(result.error || 'Failed to create event');
+      }
+    } catch (error) {
+      console.error('Submit error:', error);
+      setSubmitError('An unexpected error occurred while creating the event.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1324,16 +1375,29 @@ export const CreateEventPage: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          {/* Error/Success Messages */}
+          {submitError && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+              {submitError}
+            </div>
+          )}
+          
+          {submitSuccess && (
+            <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
+              {submitSuccess}
+            </div>
+          )}
+
           {renderStepContent()}
 
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
             <button
               onClick={handlePrevious}
-              disabled={currentStep === 1}
+              disabled={currentStep === 1 || isSubmitting}
               className={`
                 px-6 py-3 rounded-xl font-medium transition-all
-                ${currentStep === 1
+                ${currentStep === 1 || isSubmitting
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-gray-200 text-brand-dark-700 hover:bg-gray-300'
                 }
@@ -1344,10 +1408,10 @@ export const CreateEventPage: React.FC = () => {
             
             <button
               onClick={handleNext}
-              disabled={currentStep === 5 && !formData.agreeToTerms}
+              disabled={(currentStep === 5 && !formData.agreeToTerms) || isSubmitting}
               className={`
-                px-6 py-3 rounded-xl font-medium transition-all
-                ${currentStep === 5 && !formData.agreeToTerms
+                px-6 py-3 rounded-xl font-medium transition-all flex items-center space-x-2
+                ${(currentStep === 5 && !formData.agreeToTerms) || isSubmitting
                   ? 'bg-gray-400 text-white cursor-not-allowed'
                   : currentStep === 5
                   ? 'bg-brand-green-600 text-white hover:bg-brand-green-700'
@@ -1355,7 +1419,15 @@ export const CreateEventPage: React.FC = () => {
                 }
               `}
             >
-              {currentStep === 5 ? 'Submit Event' : 'Next'}
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>
+                {isSubmitting 
+                  ? 'Creating Event...' 
+                  : currentStep === 5 
+                  ? 'Submit Event' 
+                  : 'Next'
+                }
+              </span>
             </button>
           </div>
         </div>

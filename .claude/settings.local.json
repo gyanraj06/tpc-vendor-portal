@@ -25,6 +25,7 @@
       "Bash(git pull:*)",
       "Bash(grep:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

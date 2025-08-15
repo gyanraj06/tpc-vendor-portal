@@ -2,17 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Plus, ChevronDown, Edit, Mountain, MapPin, Tent, Footprints, Mic, Palette, Theater, Car, Target, Zap } from 'lucide-react';
 import { AuthService, type Vendor } from '../../services/authService';
+import { EventService } from '../../services/eventService';
 import { VendorType } from '../../types/vendorTypes';
 
 export const DashboardPage: React.FC = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [totalListings, setTotalListings] = useState(0);
+  const [isLoadingListings, setIsLoadingListings] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadVendorData();
+    loadListingsCount();
   }, []);
 
   // Refresh vendor data when component becomes visible again
@@ -20,6 +24,7 @@ export const DashboardPage: React.FC = () => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         loadVendorData();
+        loadListingsCount();
       }
     };
 
@@ -53,6 +58,24 @@ export const DashboardPage: React.FC = () => {
       navigate('/');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadListingsCount = async () => {
+    try {
+      setIsLoadingListings(true);
+      const result = await EventService.getAllListings();
+      if (result.success) {
+        setTotalListings(result.total || result.listings?.length || 0);
+      } else {
+        console.error('Failed to load listings count:', result.error);
+        setTotalListings(0);
+      }
+    } catch (error) {
+      console.error('Failed to load listings count:', error);
+      setTotalListings(0);
+    } finally {
+      setIsLoadingListings(false);
     }
   };
 
@@ -175,16 +198,27 @@ export const DashboardPage: React.FC = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <button 
+            onClick={() => navigate('/all-listings')}
+            className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-brand-blue-300 transition-all duration-200 text-left"
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-brand-dark-600">Total Listings</h3>
               <div className="w-8 h-8 bg-brand-blue-100 rounded-lg flex items-center justify-center">
                 <Plus size={16} className="text-brand-blue-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-brand-dark-900">0</p>
-            <p className="text-sm text-brand-dark-500 mt-1">No listings yet</p>
-          </div>
+            <p className="text-2xl font-bold text-brand-dark-900">
+              {isLoadingListings ? (
+                <span className="animate-pulse bg-gray-200 rounded h-8 w-8 block"></span>
+              ) : (
+                totalListings
+              )}
+            </p>
+            <p className="text-sm text-brand-dark-500 mt-1">
+              {totalListings > 0 ? 'Click to view all listings' : 'No listings yet. Create your first event!'}
+            </p>
+          </button>
 
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
@@ -193,8 +227,16 @@ export const DashboardPage: React.FC = () => {
                 <Plus size={16} className="text-green-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-brand-dark-900">0</p>
-            <p className="text-sm text-brand-dark-500 mt-1">Ready to create?</p>
+            <p className="text-2xl font-bold text-brand-dark-900">
+              {isLoadingListings ? (
+                <span className="animate-pulse bg-gray-200 rounded h-8 w-8 block"></span>
+              ) : (
+                totalListings
+              )}
+            </p>
+            <p className="text-sm text-brand-dark-500 mt-1">
+              {totalListings > 0 ? 'Events currently active' : 'Ready to create?'}
+            </p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
