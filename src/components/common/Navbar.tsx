@@ -1,18 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isLandingPage = location.pathname === '/';
+
+  // Check if user is logged in (you can replace this with your auth logic)
+  const isLoggedIn = localStorage.getItem('supabase.auth.token') !== null;
+
+  const handleDashboardClick = () => {
+    if (isLoggedIn) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
 
   // Navigation data
   const allNavLinks = [
     { path: '/', label: 'HOME' },
-    { path: '/dashboard', label: 'DASHBOARD' },
-    { path: '/events', label: 'EVENTS' },
-    { path: '/profile', label: 'PROFILE' },
   ];
 
   // Filter navigation links based on current page
@@ -70,6 +79,14 @@ const Navbar = () => {
                 {label}
               </Link>
             ))}
+            
+            {/* Dashboard Button */}
+            <button 
+              onClick={handleDashboardClick}
+              className="text-sm text-white transition-colors duration-200 hover:text-gray-300 lg:text-base font-medium"
+            >
+              Dashboard
+            </button>
           </div>
 
           {/* Center Section - Logo */}
@@ -88,19 +105,8 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Right Section - Profile & Auth Buttons */}
+          {/* Right Section - Auth Buttons */}
           <div className="flex items-center space-x-4">
-            {/* Profile Icon */}
-            <Link
-              to="/profile"
-              className="text-white transition-colors duration-200 hover:text-gray-300"
-              aria-label="Profile"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </Link>
-
             {/* Sign In Button */}
             <Link 
               to="/login"
@@ -131,17 +137,6 @@ const Navbar = () => {
 
           {/* Right Side Buttons */}
           <div className="flex items-center space-x-1">
-            {/* Mobile Profile */}
-            <Link
-              to="/profile"
-              className="p-2 text-white transition-colors duration-200 hover:text-gray-300"
-              aria-label="Profile"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </Link>
-
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -188,6 +183,17 @@ const Navbar = () => {
                 {label}
               </Link>
             ))}
+            
+            {/* Mobile Dashboard Button */}
+            <button 
+              onClick={() => {
+                handleDashboardClick();
+                setIsOpen(false);
+              }}
+              className="block text-lg text-white transition-colors hover:text-gray-300 py-2 text-left"
+            >
+              Dashboard
+            </button>
           </nav>
 
           {/* Sign In Button */}
