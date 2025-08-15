@@ -129,20 +129,20 @@ export class EventService {
   private static processImageUrl(url: string | null | undefined): string | null {
     if (!url) return null;
     
-    // If it's already a full URL, return as is
+
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
     
-    // If it's a Supabase storage path, construct the full URL
+
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     
     if (url.startsWith('vendor-event-banners/')) {
-      // Already has the bucket path
+
       const filename = url.split('/')[1];
       return `${supabaseUrl}/storage/v1/object/public/vendor-event-banners/${filename}`;
     } else if (url.includes('banner-') || url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || url.includes('.webp')) {
-      // Looks like a filename, add the bucket path
+
       return `${supabaseUrl}/storage/v1/object/public/vendor-event-banners/${url}`;
     }
     
@@ -173,7 +173,7 @@ export class EventService {
   }
 
   private static formatFormDataForAPI(formData: any): CreateEventRequest {
-    // Convert form time to ISO string
+    // form time to ISO string
     const eventDate = new Date(`${formData.date}T${formData.startTime}:00`);
     
     return {
@@ -247,7 +247,7 @@ export class EventService {
         };
       }
 
-      // Format form data for API
+     
       const eventData = this.formatFormDataForAPI(formData);
 
       // Log basic event creation info for debugging
@@ -261,7 +261,6 @@ export class EventService {
         };
       }
 
-      // Make API call to create event
 
       const response = await fetch(`${this.API_BASE_URL}/events`, {
         method: 'POST',
