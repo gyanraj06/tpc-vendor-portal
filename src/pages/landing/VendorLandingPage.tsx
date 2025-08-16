@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar';
-import LogoImage from '../../assets/LogoImage.jpg';
 import LandingImage from '../../assets/landing.jpg';
 
 export const VendorLandingPage: React.FC = () => {

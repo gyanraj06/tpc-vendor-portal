@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Calendar, MapPin, Users, Eye, Edit, Trash2, Search, Grid, List, X, Clock, Phone, CreditCard, Globe, Info } from 'lucide-react';
 import { EventService, type EventListing } from '../../services/eventService';
+import { EditEventModal } from '../../components/ui/EditEventModal';
 
 export const AllListingsPage: React.FC = () => {
   const [listings, setListings] = useState<EventListing[]>([]);
@@ -14,6 +15,8 @@ export const AllListingsPage: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<EventListing | null>(null);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [showPricingDetails, setShowPricingDetails] = useState<{[key: string]: boolean}>({});
+  const [editingEvent, setEditingEvent] = useState<EventListing | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -88,6 +91,23 @@ export const AllListingsPage: React.FC = () => {
       ...prev,
       [eventId]: !prev[eventId]
     }));
+  };
+
+  const handleEditEvent = (event: EventListing) => {
+    setEditingEvent(event);
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setEditingEvent(null);
+    setShowEditModal(false);
+  };
+
+  const handleEventUpdated = (updatedEvent: EventListing) => {
+    setListings(prev => prev.map(listing => 
+      listing.id === updatedEvent.id ? updatedEvent : listing
+    ));
+    closeEditModal();
   };
 
   const filteredListings = listings.filter(listing => {
@@ -444,7 +464,10 @@ export const AllListingsPage: React.FC = () => {
                           <Eye size={14} />
                           <span>View</span>
                         </button>
-                        <button className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-700 transition-colors">
+                        <button 
+                          onClick={() => handleEditEvent(listing)}
+                          className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-700 transition-colors"
+                        >
                           <Edit size={14} />
                           <span>Edit</span>
                         </button>
@@ -589,6 +612,7 @@ export const AllListingsPage: React.FC = () => {
                                 <Eye size={16} />
                               </button>
                               <button 
+                                onClick={() => handleEditEvent(listing)}
                                 className="text-gray-600 hover:text-gray-700 transition-colors"
                                 title="Edit Event"
                               >
@@ -884,7 +908,13 @@ export const AllListingsPage: React.FC = () => {
                 >
                   Close
                 </button>
-                <button className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center space-x-2">
+                <button 
+                  onClick={() => {
+                    closeEventDetails();
+                    handleEditEvent(selectedEvent);
+                  }}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                >
                   <Edit size={16} />
                   <span>Edit Event</span>
                 </button>
@@ -892,6 +922,16 @@ export const AllListingsPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Event Modal */}
+      {showEditModal && editingEvent && (
+        <EditEventModal
+          event={editingEvent}
+          isOpen={showEditModal}
+          onClose={closeEditModal}
+          onEventUpdated={handleEventUpdated}
+        />
       )}
     </div>
   );

@@ -58,6 +58,16 @@ export interface CreateEventResponse {
   error?: string;
 }
 
+export interface UpdateEventRequest extends Partial<CreateEventRequest> {
+  
+}
+
+export interface UpdateEventResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 export interface EventListing {
   id: string;
   vendor_id: string;
@@ -477,6 +487,8 @@ export class EventService {
     }
   }
 
+
+
   static async deleteEvent(id: string): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
       // Get JWT token from Supabase auth
@@ -530,6 +542,87 @@ export class EventService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'An unexpected error occurred while deleting the event.'
+      };
+    }
+  }
+
+    static async updateEvent(id: string, formData: any): Promise<UpdateEventResponse> {
+    try {
+      // Get JWT token from Supabase auth
+      const token = await this.getAuthToken();
+      if (!token) {
+        return {
+          success: false,
+          error: 'Authentication required. Please log in again.'
+        };
+      }
+
+      // Format the form data for API
+      const eventData = this.formatFormDataForAPI(formData);
+
+      console.log('Updating event:', id, eventData.event_name);
+
+      // Validate required fields
+      if (!eventData.agree_to_terms) {
+        return {
+          success: false,
+          error: 'You must agree to the terms and conditions to update an event.'
+        };
+      }
+
+      // Make API call to update event
+      const response = await fetch(`${this.API_BASE_URL}/events/update/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(eventData)
+      });
+
+      console.log('Event update response:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Event update failed:', response.status, response.statusText);
+        console.error('Error data:', errorData);
+        
+        if (response.status === 401) {
+          return {
+            success: false,
+            error: 'Authentication failed. Please log in again.'
+          };
+        } else if (response.status === 400) {
+          return {
+            success: false,
+            error: 'Invalid event data. Please check all required fields.'
+          };
+        } else if (response.status === 404) {
+          return {
+            success: false,
+            error: 'Event not found.'
+          };
+        } else {
+          return {
+            success: false,
+            error: `Failed to update event: ${response.status} ${response.statusText}`
+          };
+        }
+      }
+
+      const result = await response.json();
+      console.log('Event updated successfully:', id);
+      
+      return {
+        success: true,
+        message: result.message || 'Event updated successfully!'
+      };
+
+    } catch (error) {
+      console.error('Event update error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred while updating the event.'
       };
     }
   }
