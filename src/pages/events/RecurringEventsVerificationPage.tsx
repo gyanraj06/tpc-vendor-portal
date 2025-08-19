@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building, Calendar, Tag, FileText, Send, Shield } from 'lucide-react';
+import { Building, Calendar, Tag, FileText, Send, Shield } from 'lucide-react';
 
 export const RecurringEventsVerificationPage: React.FC = () => {
   const [companyName, setCompanyName] = useState('');
@@ -45,33 +45,7 @@ export const RecurringEventsVerificationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-brand-blue-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="text-brand-dark-600 hover:text-brand-blue-600 transition-colors mr-4"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              
-              <div className="flex items-center">
-                <div className="h-8 w-8 bg-[url('/assets/blueicon.png')] bg-contain bg-no-repeat"></div>
-                <div className="h-8 w-32 bg-[url('/assets/bluetext.png')] bg-contain bg-no-repeat"></div>
-              </div>
-            </div>
-
-            <div className="absolute left-1/2 transform -translate-x-1/2">
-              <h1 className="text-lg font-semibold text-brand-dark-900">Recurring Events Verification</h1>
-            </div>
-
-            <div></div>
-          </div>
-        </div>
-      </header>
+    <div>
 
       {/* Hero Section */}
       <div className="bg-brand-blue-600 text-white">

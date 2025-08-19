@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock, Upload, X, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Upload, X, Loader2 } from 'lucide-react';
 import { EventService } from '../../services/eventService';
 
 export const CreateEventPage: React.FC = () => {
@@ -1335,29 +1335,16 @@ export const CreateEventPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-blue-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center space-x-2 text-brand-dark-600 hover:text-brand-blue-600 transition-colors"
-            >
-              <ChevronLeft size={20} />
-              <span>Back to Dashboard</span>
-            </button>
-            
-            <div className="absolute left-1/2 transform -translate-x-1/2">
-              <h1 className="text-xl font-semibold text-brand-dark-900">Create your event</h1>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div>
+      {/* Page Header */}
+      <div className="max-w-4xl mx-auto mb-6">
+        <h1 className="text-3xl font-bold text-brand-dark-900">Create Event</h1>
+        <p className="text-brand-dark-600">Set up your new event or experience</p>
+      </div>
 
       {/* Progress Bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="bg-white border border-gray-200 rounded-t-xl">
+        <div className="max-w-4xl mx-auto px-6 py-6">
           <div className="text-center mb-4">
             <span className="text-sm font-medium text-brand-dark-600">
               Step {currentStep} of {steps.length}
@@ -1373,8 +1360,8 @@ export const CreateEventPage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-b-xl shadow-sm border border-gray-100 border-t-0 p-8">
           {/* Error/Success Messages */}
           {submitError && (
             <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
@@ -1431,7 +1418,7 @@ export const CreateEventPage: React.FC = () => {
             </button>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

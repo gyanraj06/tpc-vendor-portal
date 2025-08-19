@@ -7,22 +7,40 @@ import { RecurringEventsVerificationPage } from './pages/events/RecurringEventsV
 import { CreateEventPage } from './pages/events/CreateEventPage';
 import { AllListingsPage } from './pages/listings/AllListingsPage';
 import { VendorLandingPage } from './pages/landing/VendorLandingPage';
+import { QuickGuidePage } from './pages/quick-guide/QuickGuidePage';
+import { BookingsPage } from './pages/bookings/BookingsPage';
+import { WebsiteBuilderPage } from './pages/website-builder/WebsiteBuilderPage';
+import { SocialConnectPage } from './pages/social-connect/SocialConnectPage';
+import { SherpaAIPage } from './pages/sherpa-ai/SherpaAIPage';
+import { LearningsPage } from './pages/learnings/LearningsPage';
+import { SustainabilityPage } from './pages/sustainability/SustainabilityPage';
+import { Layout } from './components/layout/Layout';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
+          {/* Landing and Auth Routes - No Layout */}
           <Route path="/" element={<VendorLandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/signup" element={<AuthPage />} />
           <Route path="/profile-setup" element={<ProfileSetupPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/edit-profile" element={<EditProfilePage />} />
-          <Route path="/all-listings" element={<AllListingsPage />} />
-          <Route path="/recurring-events-verification" element={<RecurringEventsVerificationPage />} />
-          <Route path="/create-event" element={<CreateEventPage />} />
+          
+          {/* Dashboard Routes - With Layout */}
+          <Route path="/dashboard" element={<Layout><DashboardPage /></Layout>} />
+          <Route path="/quick-guide" element={<Layout><QuickGuidePage /></Layout>} />
+          <Route path="/all-listings" element={<Layout><AllListingsPage /></Layout>} />
+          <Route path="/bookings" element={<Layout><BookingsPage /></Layout>} />
+          <Route path="/website-builder" element={<Layout><WebsiteBuilderPage /></Layout>} />
+          <Route path="/social-connect" element={<Layout><SocialConnectPage /></Layout>} />
+          <Route path="/sherpa-ai" element={<Layout><SherpaAIPage /></Layout>} />
+          <Route path="/learnings" element={<Layout><LearningsPage /></Layout>} />
+          <Route path="/sustainability" element={<Layout><SustainabilityPage /></Layout>} />
+          <Route path="/edit-profile" element={<Layout><EditProfilePage /></Layout>} />
+          <Route path="/recurring-events-verification" element={<Layout><RecurringEventsVerificationPage /></Layout>} />
+          <Route path="/create-event" element={<Layout><CreateEventPage /></Layout>} />
         </Routes>
       </div>
     </Router>

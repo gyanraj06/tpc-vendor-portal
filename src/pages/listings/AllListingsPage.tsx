@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Calendar, MapPin, Users, Eye, Edit, Trash2, Search, Grid, List, X, Clock, Phone, CreditCard, Globe, Info } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Eye, Edit, Trash2, X, Clock, Phone, CreditCard, Globe, Info } from 'lucide-react';
 import { EventService, type EventListing } from '../../services/eventService';
 import { EditEventModal } from '../../components/ui/EditEventModal';
 
@@ -8,10 +8,6 @@ export const AllListingsPage: React.FC = () => {
   const [listings, setListings] = useState<EventListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [selectedEvent, setSelectedEvent] = useState<EventListing | null>(null);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [showPricingDetails, setShowPricingDetails] = useState<{[key: string]: boolean}>({});
@@ -110,14 +106,6 @@ export const AllListingsPage: React.FC = () => {
     closeEditModal();
   };
 
-  const filteredListings = listings.filter(listing => {
-    const matchesSearch = listing.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         listing.city.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || listing.category === filterCategory;
-    const matchesStatus = filterStatus === 'all' || listing.status === filterStatus;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -157,135 +145,30 @@ export const AllListingsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-brand-blue-50">
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center h-16">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center space-x-2 text-brand-dark-600 hover:text-brand-blue-600 transition-colors"
-              >
-                <ChevronLeft size={20} />
-                <span>Back to Dashboard</span>
-              </button>
-              
-              <div className="absolute left-1/2 transform -translate-x-1/2">
-                <h1 className="text-xl font-semibold text-brand-dark-900">All Listings</h1>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue-600 mx-auto mb-4"></div>
-            <p className="text-brand-dark-600">Loading your listings...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue-600 mx-auto mb-4"></div>
+          <p className="text-brand-dark-600">Loading your listings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-brand-blue-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center space-x-2 text-brand-dark-600 hover:text-brand-blue-600 transition-colors"
-            >
-              <ChevronLeft size={20} />
-              <span>Back to Dashboard</span>
-            </button>
-            
-            <div className="absolute left-1/2 transform -translate-x-1/2">
-              <h1 className="text-xl font-semibold text-brand-dark-900">All Listings</h1>
-            </div>
-
-            <button
-              onClick={() => navigate('/create-event')}
-              className="ml-auto bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <Plus size={16} />
-              <span>Create New</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div>
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-brand-dark-900 mb-2">Your Listings</h1>
-          <p className="text-brand-dark-600">Manage and track all your events and experiences</p>
+      <div className="max-w-7xl mx-auto">
+        {/* Create Button Only */}
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={() => navigate('/create-event')}
+            className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+          >
+            <Plus size={16} />
+            <span>Create New</span>
+          </button>
         </div>
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search listings..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex items-center space-x-4">
-              {/* Category Filter */}
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Categories</option>
-                <option value="comedy">Comedy</option>
-                <option value="music">Music</option>
-                <option value="workshop">Workshop</option>
-                <option value="cultural">Cultural</option>
-                <option value="educational">Educational</option>
-                <option value="networking">Networking</option>
-              </select>
-
-              {/* Status Filter */}
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="draft">Draft</option>
-                <option value="ended">Ended</option>
-              </select>
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 ${viewMode === 'grid' ? 'bg-brand-blue-100 text-brand-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-                  title="Card View"
-                >
-                  <Grid size={16} />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 ${viewMode === 'list' ? 'bg-brand-blue-100 text-brand-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-                  title="Row View"
-                >
-                  <List size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Error Display */}
         {error && (
@@ -301,7 +184,7 @@ export const AllListingsPage: React.FC = () => {
         )}
 
         {/* Listings Content */}
-        {!error && filteredListings.length === 0 ? (
+        {!error && listings.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
             <div className="text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -309,10 +192,7 @@ export const AllListingsPage: React.FC = () => {
               </div>
               <h3 className="text-xl font-semibold text-brand-dark-700 mb-2">No listings found</h3>
               <p className="text-brand-dark-500 mb-6">
-                {searchTerm || filterCategory !== 'all' || filterStatus !== 'all' 
-                  ? 'Try adjusting your search or filters'
-                  : 'You haven\'t created any listings yet. Start by creating your first event!'
-                }
+                You haven't created any listings yet. Start by creating your first event!
               </p>
               <button
                 onClick={() => navigate('/create-event')}
@@ -324,10 +204,8 @@ export const AllListingsPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <>
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredListings.map((listing) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {listings.map((listing) => (
                   <div
                     key={listing.id}
                     className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200"
@@ -481,162 +359,10 @@ export const AllListingsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredListings.map((listing) => (
-                        <tr key={listing.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-12 w-12">
-                                {listing.banner_image ? (
-                                  <img
-                                    className="h-12 w-12 rounded-lg object-cover"
-                                    src={listing.banner_image}
-                                    alt={listing.event_name}
-                                    onError={(e) => {
-                                      console.error('Row image failed to load:', listing.banner_image);
-                                      e.currentTarget.style.display = 'none';
-                                      e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-brand-blue-100 to-brand-blue-200 flex items-center justify-center">
-                                    <Calendar className="text-brand-blue-600" size={20} />
-                                  </div>
-                                )}
-                                
-                                {/* Fallback icon for failed row images */}
-                                <div className="fallback-icon hidden h-12 w-12 rounded-lg bg-gradient-to-br from-brand-blue-100 to-brand-blue-200 flex items-center justify-center">
-                                  <Calendar className="text-brand-blue-600" size={20} />
-                                </div>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-brand-dark-900">
-                                  {listing.event_name}
-                                </div>
-                                <div className="text-sm text-brand-dark-500">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getCategoryColor(listing.category)}`}>
-                                    {listing.category}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-brand-dark-900">{formatDate(listing.date)}</div>
-                            <div className="text-sm text-brand-dark-500">{listing.start_time}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-brand-dark-900">{listing.venue}</div>
-                            <div className="text-sm text-brand-dark-500">{listing.city}, {listing.state}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {listing.pricing_type === 'fixed' && listing.fixed_price ? (
-                              <div className="text-sm font-medium text-brand-blue-600">₹{listing.fixed_price}</div>
-                            ) : listing.pricing_type === 'tiered' && listing.tiers ? (
-                              <div className="text-sm text-brand-dark-900 pricing-details-container relative">
-                                <div className="flex items-center gap-1">
-                                  <span className="font-medium">Tiered</span>
-                                  <button
-                                    onClick={() => togglePricingDetails(`row-${listing.id}`)}
-                                    className="text-brand-blue-600 hover:text-brand-blue-700 transition-colors"
-                                    title="Show detailed pricing"
-                                  >
-                                    <Info size={12} />
-                                  </button>
-                                </div>
-                                {showPricingDetails[`row-${listing.id}`] ? (
-                                  <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64">
-                                    <div className="space-y-2">
-                                      {Object.entries(listing.tiers).map(([tierName, tierData]) => (
-                                        <div key={tierName} className="flex justify-between items-center">
-                                          <div>
-                                            <div className="font-medium text-sm text-gray-900">
-                                              {tierName.replace(/_/g, ' ').toUpperCase()}
-                                            </div>
-                                            {tierData.description && (
-                                              <div className="text-xs text-gray-600">{tierData.description}</div>
-                                            )}
-                                            {tierData.available_until && (
-                                              <div className="text-xs text-blue-600">
-                                                Until: {new Date(tierData.available_until).toLocaleDateString()}
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div className="font-bold text-blue-600">₹{tierData.price}</div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-brand-dark-500">
-                                    ₹{Math.min(...Object.values(listing.tiers).map(t => t.price))} - ₹{Math.max(...Object.values(listing.tiers).map(t => t.price))}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-sm text-brand-dark-500">-</div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-dark-900">
-                            {listing.max_participants}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(listing.status)}`}>
-                              {listing.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center space-x-2">
-                              <button 
-                                onClick={() => handleViewEvent(listing)}
-                                className="text-brand-blue-600 hover:text-brand-blue-700 transition-colors"
-                                title="View Details"
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button 
-                                onClick={() => handleEditEvent(listing)}
-                                className="text-gray-600 hover:text-gray-700 transition-colors"
-                                title="Edit Event"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteListing(listing.id, listing.event_name)}
-                                className="text-red-600 hover:text-red-700 transition-colors"
-                                title="Delete Event"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
-      </main>
+      </div>
 
       {/* Event Details Modal */}
       {showEventDetails && selectedEvent && (

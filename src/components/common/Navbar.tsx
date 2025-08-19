@@ -8,7 +8,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const isLandingPage = location.pathname === '/';
 
-  // Check if user is logged in (you can replace this with your auth logic)
   const isLoggedIn = localStorage.getItem('supabase.auth.token') !== null;
 
   const handleDashboardClick = () => {
