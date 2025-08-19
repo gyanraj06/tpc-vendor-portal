@@ -54,10 +54,16 @@ export const Header: React.FC<HeaderProps> = ({ isCollapsed }) => {
     >
       <div className="px-6 py-4">
         <div className="flex justify-between items-center">
-          {/* Logo */}
+          {/* Brand Text */}
           <div className="flex items-center">
-            <div className="h-8 w-8 bg-[url('/assets/LogoImage.jpg')] bg-contain bg-no-repeat rounded-full"></div>
-            <div className="h-8 w-32 bg-[url('/assets/LogoWritten.jpg')] bg-contain bg-no-repeat ml-2"></div>
+            <div className={`flex flex-col transition-opacity duration-300 ${isCollapsed ? 'hidden sm:flex' : 'flex'}`}>
+              <span className="text-xl font-bold bg-gradient-to-r from-brand-blue-600 to-brand-blue-700 bg-clip-text text-transparent leading-tight">
+                TrippeChalo
+              </span>
+              <span className="text-xs font-semibold tracking-wide text-brand-dark-500 uppercase -mt-1">
+                Vendor Portal
+              </span>
+            </div>
           </div>
 
           {/* Welcome message and Profile */}

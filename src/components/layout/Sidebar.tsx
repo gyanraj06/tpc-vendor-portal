@@ -9,7 +9,6 @@ import {
   BookOpen,
   Leaf,
   Settings,
-  ChevronLeft,
   ChevronRight,
   HelpCircle
 } from 'lucide-react';
@@ -108,27 +107,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
         isCollapsed ? 'w-16' : 'w-64'
       } min-h-screen fixed left-0 top-0 z-40`}
     >
-      {/* Header with Toggle Button */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      {/* Header with Toggle Button - Aligned with main header */}
+      <div className="flex items-center justify-between border-b border-gray-200 h-[73px] px-2">
         {!isCollapsed && (
-          <div>
-            <h2 className="text-lg font-bold text-brand-blue-600">Command Center</h2>
+          <div className="px-4 flex-1">
+            <h2 className="text-lg font-bold text-brand-blue-600 whitespace-nowrap">Command Center</h2>
           </div>
         )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
-        >
-          {isCollapsed ? (
-            <ChevronRight size={20} className="text-gray-600" />
-          ) : (
-            <ChevronLeft size={20} className="text-gray-600" />
-          )}
-        </button>
+        <div className={`flex items-center justify-center ${isCollapsed ? 'w-full' : 'pr-2'}`}>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 flex-shrink-0 hover:scale-105 group"
+          >
+            <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}>
+              <ChevronRight 
+                size={20} 
+                className="text-gray-600 transition-colors group-hover:text-brand-blue-600" 
+              />
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 px-2 pb-4">
+      <nav className="flex-1 overflow-y-auto scrollbar-hide px-2 pb-4 pt-2">
         <ul className="space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
@@ -141,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
                   className={`flex items-center px-3 py-3 rounded-lg transition-all duration-200 group relative ${
                     isActive
                       ? 'bg-brand-blue-50 text-brand-blue-700 border-r-2 border-brand-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      : 'text-gray-700 hover:bg-brand-blue-50 hover:text-brand-blue-700'
                   }`}
                   title={isCollapsed ? `${item.name} - ${item.subtitle}` : undefined}
                 >

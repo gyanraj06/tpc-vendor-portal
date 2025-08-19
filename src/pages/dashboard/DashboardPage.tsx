@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, TrendingUp, Calendar, Package, Star, Clock, Eye, MessageSquare, Bot, Sparkles, ArrowRight } from 'lucide-react';
 import { AuthService, type Vendor } from '../../services/authService';
 import { EventService } from '../../services/eventService';
+import { AnalyticsSection } from '../../components/dashboard/AnalyticsSection';
 
 export const DashboardPage: React.FC = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -188,7 +189,7 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Bookings */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-96 flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-bold text-brand-dark-900">Recent Bookings</h2>
@@ -203,6 +204,13 @@ export const DashboardPage: React.FC = () => {
               </button>
             </div>
             
+            {/* Fixed height content area with white space */}
+            <div className="bg-white flex-1 flex items-center justify-center text-brand-dark-400">
+              <div className="text-center">
+                <Calendar size={48} className="mx-auto mb-3 text-gray-300" />
+                <p className="text-sm">Booking data will appear here</p>
+              </div>
+            </div>
 
           </div>
         </div>
@@ -259,6 +267,9 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Analytics Section */}
+      <AnalyticsSection />
     </div>
   );
 };

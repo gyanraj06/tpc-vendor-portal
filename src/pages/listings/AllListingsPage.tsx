@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, MapPin, Users, Eye, Edit, Trash2, X, Clock, Phone, CreditCard, Globe, Info } from 'lucide-react';
+import { 
+  Plus, Calendar, MapPin, Users, Eye, Edit, Trash2, X, Clock, Phone, CreditCard, Globe, Info,
+  Search, Filter, Grid, List, Package, FileText, CheckCircle
+} from 'lucide-react';
 import { EventService, type EventListing } from '../../services/eventService';
 import { EditEventModal } from '../../components/ui/EditEventModal';
+import { DeleteConfirmationModal } from '../../components/ui/DeleteConfirmationModal';
 
 export const AllListingsPage: React.FC = () => {
   const [listings, setListings] = useState<EventListing[]>([]);
+  const [filteredListings, setFilteredListings] = useState<EventListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventListing | null>(null);
@@ -13,11 +18,68 @@ export const AllListingsPage: React.FC = () => {
   const [showPricingDetails, setShowPricingDetails] = useState<{[key: string]: boolean}>({});
   const [editingEvent, setEditingEvent] = useState<EventListing | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deletingEvent, setDeletingEvent] = useState<EventListing | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Filter and view states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'active', 'draft', 'ended'
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  
   const navigate = useNavigate();
 
   useEffect(() => {
     loadListings();
   }, []);
+
+  // Filter listings whenever filters or search changes
+  useEffect(() => {
+    let filtered = [...listings];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(listing =>
+        listing.event_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Active status filter
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter(listing => listing.status === activeFilter);
+    }
+
+    // Category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(listing => listing.category === categoryFilter);
+    }
+
+    // Date filter
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      filtered = filtered.filter(listing => {
+        const eventDate = new Date(listing.date);
+        switch (dateFilter) {
+          case 'upcoming':
+            return eventDate > now;
+          case 'past':
+            return eventDate < now;
+          case 'this_month':
+            return eventDate.getMonth() === now.getMonth() && eventDate.getFullYear() === now.getFullYear();
+          default:
+            return true;
+        }
+      });
+    }
+
+    setFilteredListings(filtered);
+  }, [listings, searchQuery, activeFilter, categoryFilter, dateFilter]);
 
   // Close pricing details when clicking outside
   useEffect(() => {
@@ -52,23 +114,36 @@ export const AllListingsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteListing = async (id: string, eventName: string) => {
-    if (!confirm(`Are you sure you want to delete "${eventName}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteListing = (listing: EventListing) => {
+    setDeletingEvent(listing);
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!deletingEvent) return;
+    
+    setIsDeleting(true);
     try {
-      const result = await EventService.deleteEvent(id);
+      const result = await EventService.deleteEvent(deletingEvent.id);
       if (result.success) {
-        // Remove from local state
-        setListings(prev => prev.filter(listing => listing.id !== id));
-        // You could show a success message here
+        setListings(prev => prev.filter(listing => listing.id !== deletingEvent.id));
+        setShowDeleteModal(false);
+        setDeletingEvent(null);
       } else {
         alert(result.error || 'Failed to delete event');
       }
     } catch (error) {
       console.error('Failed to delete event:', error);
       alert('An unexpected error occurred while deleting the event');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    if (!isDeleting) {
+      setShowDeleteModal(false);
+      setDeletingEvent(null);
     }
   };
 
@@ -104,6 +179,19 @@ export const AllListingsPage: React.FC = () => {
       listing.id === updatedEvent.id ? updatedEvent : listing
     ));
     closeEditModal();
+  };
+
+  // Computed statistics
+  const totalProducts = listings.length;
+  const activeListings = listings.filter(l => l.status === 'active').length;
+  const draftProducts = listings.filter(l => l.status === 'draft').length;
+
+  // Get unique categories for filter
+  const categories = [...new Set(listings.map(l => l.category))];
+
+  const handleViewBookings = (listing: EventListing) => {
+    // Navigate to bookings page with event filter
+    navigate(`/bookings?event=${listing.id}`);
   };
 
 
@@ -155,45 +243,226 @@ export const AllListingsPage: React.FC = () => {
   }
 
   return (
-    <div>
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto">
-        {/* Create Button Only */}
-        <div className="flex justify-end mb-6">
+    <>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-brand-dark-900">All Products</h1>
+            <p className="text-brand-dark-500">Manage your event listings and bookings</p>
+          </div>
           <button
             onClick={() => navigate('/create-event')}
-            className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
           >
             <Plus size={16} />
-            <span>Create New</span>
+            <span>Create New Product</span>
           </button>
         </div>
 
-
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6">
-            <p>{error}</p>
-            <button 
-              onClick={loadListings}
-              className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
-        {/* Listings Content */}
-        {!error && listings.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus size={24} className="text-gray-400" />
+        {/* Top Insight Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Package size={24} className="text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold text-brand-dark-700 mb-2">No listings found</h3>
-              <p className="text-brand-dark-500 mb-6">
-                You haven't created any listings yet. Start by creating your first event!
-              </p>
+              <span className="text-blue-600 text-sm font-medium bg-blue-50 px-2 py-1 rounded-full">
+                Total
+              </span>
+            </div>
+            <h3 className="text-2xl font-bold text-brand-dark-900 mb-1">{totalProducts}</h3>
+            <p className="text-brand-dark-500 text-sm">Total Products</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <CheckCircle size={24} className="text-green-600" />
+              </div>
+              <span className="text-green-600 text-sm font-medium bg-green-50 px-2 py-1 rounded-full">
+                Live
+              </span>
+            </div>
+            <h3 className="text-2xl font-bold text-brand-dark-900 mb-1">{activeListings}</h3>
+            <p className="text-brand-dark-500 text-sm">Active Listings</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <FileText size={24} className="text-yellow-600" />
+              </div>
+              <span className="text-yellow-600 text-sm font-medium bg-yellow-50 px-2 py-1 rounded-full">
+                Draft
+              </span>
+            </div>
+            <h3 className="text-2xl font-bold text-brand-dark-900 mb-1">{draftProducts}</h3>
+            <p className="text-brand-dark-500 text-sm">Draft Products</p>
+          </div>
+        </div>
+
+        {/* Search, Filters and View Controls - All in One Line */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-4">
+            {/* Search Bar */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brand-dark-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-brand-dark-700 whitespace-nowrap">Status:</label>
+              <select
+                value={activeFilter}
+                onChange={(e) => setActiveFilter(e.target.value)}
+                className="px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent text-sm whitespace-nowrap"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+                <option value="ended">Ended</option>
+              </select>
+            </div>
+
+            {/* Advanced Filters Toggle */}
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="flex items-center space-x-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm whitespace-nowrap"
+            >
+              <Filter size={16} />
+              <span>Filters</span>
+            </button>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('card')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors text-sm ${
+                  viewMode === 'card' 
+                    ? 'bg-white text-brand-blue-600 shadow-sm' 
+                    : 'text-brand-dark-600 hover:text-brand-dark-900'
+                }`}
+              >
+                <Grid size={16} />
+                <span>Card</span>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors text-sm ${
+                  viewMode === 'list' 
+                    ? 'bg-white text-brand-blue-600 shadow-sm' 
+                    : 'text-brand-dark-600 hover:text-brand-dark-900'
+                }`}
+              >
+                <List size={16} />
+                <span>List</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-brand-dark-700 mb-2">Category</label>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map(category => (
+                      <option key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-brand-dark-700 mb-2">Date Range</label>
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All Dates</option>
+                    <option value="upcoming">Upcoming Events</option>
+                    <option value="past">Past Events</option>
+                    <option value="this_month">This Month</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+          <p>{error}</p>
+          <button 
+            onClick={loadListings}
+            className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Results Info */}
+      {!error && (
+        <div className="flex items-center justify-between text-sm text-brand-dark-600">
+          <span>
+            Showing {filteredListings.length} of {totalProducts} products
+            {searchQuery && ` for "${searchQuery}"`}
+          </span>
+          {filteredListings.length !== totalProducts && (
+            <button 
+              onClick={() => {
+                setSearchQuery('');
+                setActiveFilter('all');
+                setCategoryFilter('all');
+                setDateFilter('all');
+              }}
+              className="text-brand-blue-600 hover:text-brand-blue-700 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Listings Content */}
+      {!error && filteredListings.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              {totalProducts === 0 ? (
+                <Plus size={24} className="text-gray-400" />
+              ) : (
+                <Search size={24} className="text-gray-400" />
+              )}
+            </div>
+            <h3 className="text-xl font-semibold text-brand-dark-700 mb-2">
+              {totalProducts === 0 ? 'No listings found' : 'No matching results'}
+            </h3>
+            <p className="text-brand-dark-500 mb-6">
+              {totalProducts === 0 
+                ? "You haven't created any listings yet. Start by creating your first event!"
+                : "Try adjusting your search or filter criteria to find what you're looking for."
+              }
+            </p>
+            {totalProducts === 0 ? (
               <button
                 onClick={() => navigate('/create-event')}
                 className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 mx-auto"
@@ -201,15 +470,28 @@ export const AllListingsPage: React.FC = () => {
                 <Plus size={16} />
                 <span>Create Your First Listing</span>
               </button>
-            </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveFilter('all');
+                  setCategoryFilter('all');
+                  setDateFilter('all');
+                }}
+                className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-6 py-3 rounded-xl transition-colors mx-auto"
+              >
+                Clear All Filters
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {listings.map((listing) => (
-                  <div
-                    key={listing.id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200"
-                  >
+        </div>
+      ) : viewMode === 'card' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredListings.map((listing) => (
+            <div
+              key={listing.id}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200"
+            >
                     {/* Banner Image */}
                     <div className="h-48 bg-gray-200 relative">
                       {listing.banner_image ? (
@@ -334,23 +616,32 @@ export const AllListingsPage: React.FC = () => {
                       )}
 
                       {/* Actions */}
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <button 
+                            onClick={() => handleViewEvent(listing)}
+                            className="flex items-center space-x-1 text-sm text-brand-blue-600 hover:text-brand-blue-700 transition-colors"
+                          >
+                            <Eye size={14} />
+                            <span>View</span>
+                          </button>
+                          <button 
+                            onClick={() => handleEditEvent(listing)}
+                            className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-700 transition-colors"
+                          >
+                            <Edit size={14} />
+                            <span>Edit</span>
+                          </button>
+                          <button 
+                            onClick={() => handleViewBookings(listing)}
+                            className="flex items-center space-x-1 text-sm text-green-600 hover:text-green-700 transition-colors"
+                          >
+                            <Users size={14} />
+                            <span>Bookings</span>
+                          </button>
+                        </div>
                         <button 
-                          onClick={() => handleViewEvent(listing)}
-                          className="flex items-center space-x-1 text-sm text-brand-blue-600 hover:text-brand-blue-700 transition-colors"
-                        >
-                          <Eye size={14} />
-                          <span>View</span>
-                        </button>
-                        <button 
-                          onClick={() => handleEditEvent(listing)}
-                          className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-700 transition-colors"
-                        >
-                          <Edit size={14} />
-                          <span>Edit</span>
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteListing(listing.id, listing.event_name)}
+                          onClick={() => handleDeleteListing(listing)}
                           className="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 transition-colors"
                         >
                           <Trash2 size={14} />
@@ -360,8 +651,133 @@ export const AllListingsPage: React.FC = () => {
                     </div>
                   </div>
             ))}
+        </div>
+      ) : (
+        /* List View */
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-3 px-6 font-semibold text-brand-dark-900">Event</th>
+                  <th className="text-left py-3 px-6 font-semibold text-brand-dark-900">Date & Venue</th>
+                  <th className="text-left py-3 px-6 font-semibold text-brand-dark-900">Category</th>
+                  <th className="text-left py-3 px-6 font-semibold text-brand-dark-900">Status</th>
+                  <th className="text-left py-3 px-6 font-semibold text-brand-dark-900">Price</th>
+                  <th className="text-left py-3 px-6 font-semibold text-brand-dark-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredListings.map((listing, index) => (
+                  <tr key={listing.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                          {listing.banner_image ? (
+                            <img
+                              src={listing.banner_image}
+                              alt={listing.event_name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-blue-100 to-brand-blue-200">
+                              <Calendar className="text-brand-blue-600" size={16} />
+                            </div>
+                          )}
+                          <div className="fallback-icon hidden w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-blue-100 to-brand-blue-200">
+                            <Calendar className="text-brand-blue-600" size={16} />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-brand-dark-900 line-clamp-1">{listing.event_name}</h3>
+                          <p className="text-sm text-brand-dark-500 flex items-center mt-1">
+                            <Users size={12} className="mr-1" />
+                            Max {listing.max_participants}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="text-sm">
+                        <div className="flex items-center text-brand-dark-900 mb-1">
+                          <Calendar size={12} className="mr-1" />
+                          {formatDate(listing.date)}
+                        </div>
+                        <div className="flex items-center text-brand-dark-500">
+                          <MapPin size={12} className="mr-1" />
+                          {listing.venue}, {listing.city}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getCategoryColor(listing.category)}`}>
+                        {listing.category}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(listing.status)}`}>
+                        {listing.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      {listing.pricing_type === 'fixed' && listing.fixed_price ? (
+                        <span className="text-sm font-semibold text-brand-blue-600">₹{listing.fixed_price}</span>
+                      ) : listing.pricing_type === 'tiered' && listing.tiers ? (
+                        <div className="text-sm">
+                          <span className="text-brand-blue-600 font-medium">Tiered</span>
+                          <div className="text-xs text-brand-dark-500">
+                            {Object.entries(listing.tiers).slice(0, 1).map(([, tierData]) => (
+                              <span key="first">from ₹{tierData.price}</span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-brand-dark-500">-</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center space-x-1">
+                        <button 
+                          onClick={() => handleViewEvent(listing)}
+                          className="p-2 text-brand-blue-600 hover:bg-brand-blue-50 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleEditEvent(listing)}
+                          className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                          title="Edit Event"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleViewBookings(listing)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="View Bookings"
+                        >
+                          <Users size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteListing(listing)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Event"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
+      )}
       </div>
 
       {/* Event Details Modal */}
@@ -659,6 +1075,15 @@ export const AllListingsPage: React.FC = () => {
           onEventUpdated={handleEventUpdated}
         />
       )}
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        itemName={deletingEvent?.event_name || ''}
+        isLoading={isDeleting}
+      />
+    </>
   );
 };
