@@ -8,7 +8,6 @@ import {
   Bot,
   BookOpen,
   Leaf,
-  Settings,
   ChevronRight,
   HelpCircle
 } from 'lucide-react';
@@ -84,20 +83,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
       icon: Leaf,
       path: '/sustainability',
       color: 'text-emerald-600'
-    },
-    {
-      name: 'Settings',
-      subtitle: 'Accounts and Preferences',
-      icon: Settings,
-      path: '/settings',
-      color: 'text-gray-600'
     }
   ];
 
   const isActiveRoute = (path: string) => {
     if (path === '/dashboard') return location.pathname === '/dashboard';
     if (path === '/products') return location.pathname === '/all-listings';
-    if (path === '/settings') return location.pathname === '/edit-profile';
     return location.pathname === path;
   };
 
@@ -139,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
             return (
               <li key={item.path}>
                 <Link
-                  to={item.path === '/products' ? '/all-listings' : item.path === '/settings' ? '/edit-profile' : item.path}
+                  to={item.path === '/products' ? '/all-listings' : item.path}
                   className={`flex items-center px-3 py-3 rounded-lg transition-all duration-200 group relative ${
                     isActive
                       ? 'bg-brand-blue-50 text-brand-blue-700 border-r-2 border-brand-blue-600'
