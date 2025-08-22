@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -11,6 +12,8 @@ import {
   ChevronRight,
   HelpCircle
 } from 'lucide-react';
+import { AuthService, type Vendor } from '../../services/authService';
+import { getVendorLabels } from '../../utils/vendorLabels';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -19,6 +22,16 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const vendorLabels = getVendorLabels(vendor?.vendorType);
+
+  useEffect(() => {
+    const loadVendor = async () => {
+      const vendorData = await AuthService.getCurrentUser();
+      setVendor(vendorData);
+    };
+    loadVendor();
+  }, []);
 
   const navigationItems = [
     {
@@ -36,8 +49,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
       color: 'text-purple-600'
     },
     {
-      name: 'Products',
-      subtitle: 'Manage Listings',
+      name: vendorLabels.productPlural,
+      subtitle: vendorLabels.sidebarSubtitle,
       icon: Package,
       path: '/products',
       color: 'text-green-600'

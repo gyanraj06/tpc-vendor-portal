@@ -191,8 +191,29 @@ export class EventService {
   }
 
   private static formatFormDataForAPI(formData: any): CreateEventRequest {
-    // form time to ISO string
-    const eventDate = new Date(`${formData.date}T${formData.startTime}:00`);
+    // Handle date formatting - formData.date is now a string in YYYY-MM-DD format
+    // and formData.startTime is a string in HH:MM:SS format
+    let eventDate: Date;
+    try {
+      // Ensure we have both date and time
+      if (!formData.date || !formData.startTime) {
+        throw new Error('Date or time is missing');
+      }
+      
+      // Construct a proper ISO datetime string
+      const dateTimeString = `${formData.date}T${formData.startTime}`;
+      console.log('Constructing date from:', dateTimeString);
+      eventDate = new Date(dateTimeString);
+      
+      // Validate the date
+      if (isNaN(eventDate.getTime())) {
+        throw new Error('Invalid date/time combination');
+      }
+    } catch (error) {
+      console.error('Date parsing error:', error, 'Date:', formData.date, 'Time:', formData.startTime);
+      // Fallback to current date if parsing fails
+      eventDate = new Date();
+    }
 
     return {
       event_name: formData.eventName,
@@ -284,7 +305,7 @@ export class EventService {
         };
       }
 
-      const response = await fetch(`${this.API_BASE_URL}/events`, {
+      const response = await fetch(`${this.API_BASE_URL}/events/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

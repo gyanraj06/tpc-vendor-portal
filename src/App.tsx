@@ -1,10 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { AuthPage } from './pages/auth/AuthPage';
 import { ProfileSetupPage } from './pages/auth/ProfileSetupPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { EditProfilePage } from './pages/profile/EditProfilePage';
 import { RecurringEventsVerificationPage } from './pages/events/RecurringEventsVerificationPage';
 import { CreateEventPage } from './pages/events/CreateEventPage';
+import { CreateRecurringEventPage } from './pages/events/CreateRecurringEventPage';
 import { AllListingsPage } from './pages/listings/AllListingsPage';
 import { VendorLandingPage } from './pages/landing/VendorLandingPage';
 import { QuickGuidePage } from './pages/quick-guide/QuickGuidePage';
@@ -15,17 +18,20 @@ import { SherpaAIPage } from './pages/sherpa-ai/SherpaAIPage';
 import { LearningsPage } from './pages/learnings/LearningsPage';
 import { SustainabilityPage } from './pages/sustainability/SustainabilityPage';
 import { Layout } from './components/layout/Layout';
+import { AuthCallbackPage } from './pages/auth/AuthCallbackPage';
 
 function App() {
   return (
-    <Router>
-      <div className="App">
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Router>
+        <div className="App">
         <Routes>
           {/* Landing and Auth Routes - No Layout */}
           <Route path="/" element={<VendorLandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/signup" element={<AuthPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/profile-setup" element={<ProfileSetupPage />} />
           
           {/* Dashboard Routes - With Layout */}
@@ -41,9 +47,11 @@ function App() {
           <Route path="/edit-profile" element={<Layout><EditProfilePage /></Layout>} />
           <Route path="/recurring-events-verification" element={<Layout><RecurringEventsVerificationPage /></Layout>} />
           <Route path="/create-event" element={<Layout><CreateEventPage /></Layout>} />
+          <Route path="/create-recurring-event" element={<Layout><CreateRecurringEventPage /></Layout>} />
         </Routes>
-      </div>
-    </Router>
+        </div>
+      </Router>
+    </LocalizationProvider>
   );
 }
 

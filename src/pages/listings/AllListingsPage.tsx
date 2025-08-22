@@ -7,6 +7,8 @@ import {
 import { EventService, type EventListing } from '../../services/eventService';
 import { EditEventModal } from '../../components/ui/EditEventModal';
 import { DeleteConfirmationModal } from '../../components/ui/DeleteConfirmationModal';
+import { AuthService, type Vendor } from '../../services/authService';
+import { getVendorLabels } from '../../utils/vendorLabels';
 
 export const AllListingsPage: React.FC = () => {
   const [listings, setListings] = useState<EventListing[]>([]);
@@ -21,6 +23,7 @@ export const AllListingsPage: React.FC = () => {
   const [deletingEvent, setDeletingEvent] = useState<EventListing | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
   
   // Filter and view states
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +37,17 @@ export const AllListingsPage: React.FC = () => {
 
   useEffect(() => {
     loadListings();
+    loadVendorData();
   }, []);
+
+  const loadVendorData = async () => {
+    try {
+      const vendorData = await AuthService.getCurrentUser();
+      setVendor(vendorData);
+    } catch (error) {
+      console.error('Failed to load vendor data:', error);
+    }
+  };
 
   // Filter listings whenever filters or search changes
   useEffect(() => {
@@ -181,7 +194,8 @@ export const AllListingsPage: React.FC = () => {
     closeEditModal();
   };
 
-  // Computed statistics
+  // Computed statistics and labels
+  const vendorLabels = getVendorLabels(vendor?.vendorType);
   const totalProducts = listings.length;
   const activeListings = listings.filter(l => l.status === 'active').length;
   const draftProducts = listings.filter(l => l.status === 'draft').length;
@@ -248,16 +262,37 @@ export const AllListingsPage: React.FC = () => {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-brand-dark-900">All Products</h1>
-            <p className="text-brand-dark-500">Manage your event listings and bookings</p>
+            <h1 className="text-2xl font-bold text-brand-dark-900">All {vendorLabels.productPlural}</h1>
+            <p className="text-brand-dark-500">Manage your {vendorLabels.productPlural.toLowerCase()} listings and bookings</p>
           </div>
-          <button
-            onClick={() => navigate('/create-event')}
-            className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
-          >
-            <Plus size={16} />
-            <span>Create New Product</span>
-          </button>
+          
+          {/* Dynamic Create Buttons based on vendor type */}
+          {vendor?.vendorType === 'LOCAL_EVENT_HOST' ? (
+            <div className="flex space-x-3">
+              <button
+                onClick={() => navigate('/create-event')}
+                className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-4 py-3 rounded-lg flex items-center space-x-2 transition-colors text-sm font-medium"
+              >
+                <Plus size={16} />
+                <span>CREATE ONE TIME EVENT</span>
+              </button>
+              <button
+                onClick={() => navigate('/create-recurring-event')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg flex items-center space-x-2 transition-colors text-sm font-medium"
+              >
+                <Plus size={16} />
+                <span>CREATE EXPERIENCE</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/create-event')}
+              className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Plus size={16} />
+              <span>{vendorLabels.createNewButtonText}</span>
+            </button>
+          )}
         </div>
 
         {/* Top Insight Cards */}
@@ -272,7 +307,7 @@ export const AllListingsPage: React.FC = () => {
               </span>
             </div>
             <h3 className="text-2xl font-bold text-brand-dark-900 mb-1">{totalProducts}</h3>
-            <p className="text-brand-dark-500 text-sm">Total Products</p>
+            <p className="text-brand-dark-500 text-sm">Total {vendorLabels.productPlural}</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -298,7 +333,7 @@ export const AllListingsPage: React.FC = () => {
               </span>
             </div>
             <h3 className="text-2xl font-bold text-brand-dark-900 mb-1">{draftProducts}</h3>
-            <p className="text-brand-dark-500 text-sm">Draft Products</p>
+            <p className="text-brand-dark-500 text-sm">Draft {vendorLabels.productPlural}</p>
           </div>
         </div>
 
@@ -423,7 +458,7 @@ export const AllListingsPage: React.FC = () => {
       {!error && (
         <div className="flex items-center justify-between text-sm text-brand-dark-600">
           <span>
-            Showing {filteredListings.length} of {totalProducts} products
+            Showing {filteredListings.length} of {totalProducts} {vendorLabels.productPlural.toLowerCase()}
             {searchQuery && ` for "${searchQuery}"`}
           </span>
           {filteredListings.length !== totalProducts && (
@@ -463,13 +498,9 @@ export const AllListingsPage: React.FC = () => {
               }
             </p>
             {totalProducts === 0 ? (
-              <button
-                onClick={() => navigate('/create-event')}
-                className="bg-brand-blue-600 hover:bg-brand-blue-700 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 mx-auto"
-              >
-                <Plus size={16} />
-                <span>Create Your First Listing</span>
-              </button>
+              <div className="text-center">
+                <p className="text-brand-dark-500 mb-2">Use the create buttons above to get started</p>
+              </div>
             ) : (
               <button
                 onClick={() => {

@@ -13,6 +13,25 @@ export interface Vendor {
   isFirstLogin: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Business verification fields
+  business_name?: string | null;
+  legal_name?: string | null;
+  business_type?: string | null;
+  business_registration_document?: string | null;
+  website_or_social_link?: string | null;
+  registered_address?: string | null;
+  authorized_contact_person_name?: string | null;
+  contact_phone_number?: string | null;
+  contact_email?: string | null;
+  id_proof_document?: string | null;
+  account_holder_name?: string | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
+  business_details_verified?: boolean;
+  business_verification_status?: string;
+  business_verification_completed_at?: Date | null;
+  business_verification_reminder_shown?: boolean;
   // Supabase Auth user data
   authUser?: User;
 }
@@ -263,6 +282,25 @@ export class AuthService {
         isFirstLogin: data.is_first_login,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
+        // Business verification fields
+        business_name: data.business_name,
+        legal_name: data.legal_name,
+        business_type: data.business_type,
+        business_registration_document: data.business_registration_document,
+        website_or_social_link: data.website_or_social_link,
+        registered_address: data.registered_address,
+        authorized_contact_person_name: data.authorized_contact_person_name,
+        contact_phone_number: data.contact_phone_number,
+        contact_email: data.contact_email,
+        id_proof_document: data.id_proof_document,
+        account_holder_name: data.account_holder_name,
+        bank_name: data.bank_name,
+        account_number: data.account_number,
+        ifsc_code: data.ifsc_code,
+        business_details_verified: data.business_details_verified,
+        business_verification_status: data.business_verification_status,
+        business_verification_completed_at: data.business_verification_completed_at ? new Date(data.business_verification_completed_at) : null,
+        business_verification_reminder_shown: data.business_verification_reminder_shown,
         authUser: user || undefined
       };
     } catch (error) {
@@ -276,7 +314,7 @@ export class AuthService {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
 

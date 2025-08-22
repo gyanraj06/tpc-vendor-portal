@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 export class StorageService {
   private static readonly AVATAR_BUCKET = 'avatars';
 
+
   /**
    * Upload avatar image to Supabase Storage
    */
@@ -147,4 +148,5 @@ export class StorageService {
       return false;
     }
   }
+
 }
