@@ -17,6 +17,7 @@ export const CreateRecurringEventPage: React.FC = () => {
   const [formData, setFormData] = useState({
     // Event Name - ADDED
     eventName: '',
+    description: '',
     
     // Category of Experience
     primaryCategory: '',
@@ -24,20 +25,19 @@ export const CreateRecurringEventPage: React.FC = () => {
     recurrenceType: '',
     daysOfWeek: [] as string[],
     timeSlots: [{ startTime: null as Date | null, endTime: null as Date | null }],
-    recurrenceFrequency: '',
 
     // Location Setting
     locationType: 'fixed', // fixed, itinerary, multiple
+    address: '',
     itinerary: [{ location: '', description: '', duration: '' }],
-    locationVariations: [{ name: '', address: '', description: '' }],
 
     // Pricing and Inclusions
     eventType: '',
     ticketPricePerPerson: '',
     ticketType: '',
     addOnServices: [{ name: '', price: '' }],
-    maxParticipants: '',
-    bookingCloses: '',
+    numberOfMaxTicketsPerOccurrence: '',
+    bookingClosesBeforeHrs: '',
     earlyBirdCouponCode: '',
     earlyBirdDiscount: '',
     refundPolicy: '',
@@ -95,20 +95,22 @@ export const CreateRecurringEventPage: React.FC = () => {
     switch (field) {
       case 'eventName':
         return !value?.trim() ? 'Event name is required' : '';
+      case 'description':
+        return !value?.trim() ? 'Description is required' : '';
       case 'primaryCategory':
         return !value ? 'Primary category is required' : '';
       case 'subCategory':
         return !value?.trim() ? 'Sub category is required' : '';
       case 'recurrenceType':
         return !value ? 'Recurrence type is required' : '';
-      case 'recurrenceFrequency':
-        return !value ? 'Recurrence frequency is required' : '';
       case 'daysOfWeek':
-        return value.length === 0 ? 'At least one day must be selected' : '';
+        return formData.recurrenceType === 'weekly' && value.length === 0 ? 'At least one day must be selected' : '';
       case 'timeSlots':
         return value.length === 0 || !value[0].startTime || !value[0].endTime ? 'At least one complete time slot is required' : '';
       case 'locationType':
         return !value ? 'Location type is required' : '';
+      case 'address':
+        return formData.locationType === 'fixed' && !value?.trim() ? 'Address is required for fixed location' : '';
       case 'eventType':
         return !value ? 'Event type is required' : '';
       case 'ticketPricePerPerson':
@@ -116,11 +118,11 @@ export const CreateRecurringEventPage: React.FC = () => {
                formData.eventType === 'paid' && isNaN(Number(value)) ? 'Ticket price must be a number' : '';
       case 'ticketType':
         return !value ? 'Ticket type is required' : '';
-      case 'maxParticipants':
-        return !value?.trim() ? 'Max participants is required' : 
-               isNaN(Number(value)) || Number(value) <= 0 ? 'Max participants must be a positive number' : '';
-      case 'bookingCloses':
-        return !value ? 'Booking closure time is required' : '';
+      case 'numberOfMaxTicketsPerOccurrence':
+        return value?.trim() && (isNaN(Number(value)) || Number(value) <= 0) ? 'Number of max tickets must be a positive number' : '';
+      case 'bookingClosesBeforeHrs':
+        return !value?.trim() ? 'Booking closes before hours is required' : 
+               isNaN(Number(value)) || Number(value) < 0 ? 'Booking closes before hours must be a positive number' : '';
       case 'refundPolicy':
         return !value ? 'Refund policy is required' : '';
       case 'cancellationPolicy':
@@ -175,10 +177,20 @@ export const CreateRecurringEventPage: React.FC = () => {
 
   const handleNext = async () => {
     // ALL mandatory fields validation
+    let step2Fields = ['eventName', 'description', 'primaryCategory', 'subCategory', 'recurrenceType', 'timeSlots'];
+    if (formData.recurrenceType === 'weekly') {
+      step2Fields.push('daysOfWeek');
+    }
+    
+    let step3Fields = ['locationType'];
+    if (formData.locationType === 'fixed') {
+      step3Fields.push('address');
+    }
+    
     const requiredFields = {
-      2: ['eventName', 'primaryCategory', 'subCategory', 'recurrenceType', 'recurrenceFrequency', 'daysOfWeek', 'timeSlots'],
-      3: ['locationType'],
-      4: ['eventType', 'ticketType', 'maxParticipants', 'bookingCloses', 'refundPolicy', 'cancellationPolicy'],
+      2: step2Fields,
+      3: step3Fields,
+      4: ['eventType', 'ticketType', 'bookingClosesBeforeHrs', 'refundPolicy', 'cancellationPolicy'],
       5: ['emergencyContactNumber', 'hasLiabilityInsurance']
     };
 
@@ -284,29 +296,6 @@ export const CreateRecurringEventPage: React.FC = () => {
     });
   };
 
-  const addLocationVariation = () => {
-    setFormData({
-      ...formData,
-      locationVariations: [...formData.locationVariations, { name: '', address: '', description: '' }]
-    });
-  };
-
-  const removeLocationVariation = (index: number) => {
-    const newLocationVariations = formData.locationVariations.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      locationVariations: newLocationVariations
-    });
-  };
-
-  const updateLocationVariation = (index: number, field: 'name' | 'address' | 'description', value: string) => {
-    const newLocationVariations = [...formData.locationVariations];
-    newLocationVariations[index][field] = value;
-    setFormData({
-      ...formData,
-      locationVariations: newLocationVariations
-    });
-  };
 
   const addAddOnService = () => {
     setFormData({
@@ -700,6 +689,30 @@ export const CreateRecurringEventPage: React.FC = () => {
                 )}
               </div>
 
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="description"
+                  value={formData.description || ''}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.description ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
+                  placeholder="Describe your event/experience in detail"
+                  rows={4}
+                  required
+                />
+                {errors.description && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.description}
+                  </p>
+                )}
+              </div>
+
               {/* Primary Category */}
               <div>
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
@@ -763,11 +776,10 @@ export const CreateRecurringEventPage: React.FC = () => {
                   Recurrence Type <span className="text-red-500">*</span>
                 </label>
 <div id="recurrenceType">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
                     { value: 'daily', label: 'Daily', desc: 'Every day or specific days' },
-                    { value: 'weekly', label: 'Weekly', desc: 'Every week on selected days' },
-                    { value: 'monthly', label: 'Monthly', desc: 'Monthly recurring schedule' }
+                    { value: 'weekly', label: 'Weekly', desc: 'Every week on selected days' }
                   ].map(option => (
                     <button
                       key={option.value}
@@ -797,11 +809,12 @@ export const CreateRecurringEventPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Days of Week */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-4">
-                  Days of Week <span className="text-red-500">*</span>
-                </label>
+              {/* Days of Week - Show only when recurrence type is Weekly */}
+              {formData.recurrenceType === 'weekly' && (
+                <div>
+                  <label className="block text-sm font-medium text-brand-dark-900 mb-4">
+                    Days of Week <span className="text-red-500">*</span>
+                  </label>
 <div id="daysOfWeek">
                 <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
                   {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
@@ -831,7 +844,8 @@ export const CreateRecurringEventPage: React.FC = () => {
                   </p>
                 )}
                 </div>
-              </div>
+                </div>
+              )}
 
               {/* Time Slots */}
               <div>
@@ -907,33 +921,6 @@ export const CreateRecurringEventPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Recurrence Frequency */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-4">
-                  Recurrence Frequency <span className="text-red-500">*</span>
-                </label>
-<select
-                  id="recurrenceFrequency"
-                  value={formData.recurrenceFrequency}
-                  onChange={(e) => handleFieldChange('recurrenceFrequency', e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
-                    errors.recurrenceFrequency ? 'border-red-500 bg-red-50' : 'border-gray-200'
-                  }`}
-                >
-                  <option value="">Select frequency</option>
-                  <option value="every_week">Every Week</option>
-                  <option value="every_2_weeks">Every 2 Weeks</option>
-                  <option value="every_month">Every Month</option>
-                  <option value="seasonal">Seasonal</option>
-                  <option value="custom">Custom Schedule</option>
-                </select>
-                {errors.recurrenceFrequency && (
-                  <p className="text-red-500 text-xs mt-1 flex items-center">
-                    <AlertCircle size={12} className="mr-1" />
-                    {errors.recurrenceFrequency}
-                  </p>
-                )}
-              </div>
             </div>
           </div>
         );
@@ -957,11 +944,10 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Location Type <span className="text-red-500">*</span>
                 </label>
-                <div id="locationType" className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div id="locationType" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
                     { value: 'fixed', label: 'Fixed Location', desc: 'Same venue every time' },
-                    { value: 'itinerary', label: 'Itinerary Builder', desc: 'Multiple locations in sequence' },
-                    { value: 'multiple', label: 'Location Variations', desc: 'Different venues for different sessions' }
+                    { value: 'itinerary', label: 'Itinerary Builder', desc: 'Multiple locations in sequence' }
                   ].map(option => (
                     <button
                       key={option.value}
@@ -989,6 +975,32 @@ export const CreateRecurringEventPage: React.FC = () => {
                   </p>
                 )}
               </div>
+
+              {/* Address - Show only if Fixed Location is selected */}
+              {formData.locationType === 'fixed' && (
+                <div>
+                  <label className="block text-sm font-medium text-brand-dark-900 mb-3">
+                    Address <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    id="address"
+                    value={formData.address || ''}
+                    onChange={(e) => handleFieldChange('address', e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                      errors.address ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    }`}
+                    placeholder="Enter the complete address for your fixed location"
+                    rows={3}
+                    required
+                  />
+                  {errors.address && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center">
+                      <AlertCircle size={12} className="mr-1" />
+                      {errors.address}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Itinerary Builder - Show only if itinerary type is selected */}
               {formData.locationType === 'itinerary' && (
@@ -1057,71 +1069,6 @@ export const CreateRecurringEventPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Location Variations - Show only if multiple type is selected */}
-              {formData.locationType === 'multiple' && (
-                <div>
-                  <label className="block text-sm font-medium text-brand-dark-900 mb-4">
-                    Location Variations
-                  </label>
-                  <div className="space-y-4">
-                    {formData.locationVariations.map((variation, index) => (
-                      <div key={index} className="p-4 border border-gray-200 rounded-xl">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm text-brand-dark-600 mb-1">Location Name</label>
-                            <input
-                              type="text"
-                              value={variation.name}
-                              onChange={(e) => updateLocationVariation(index, 'name', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
-                              placeholder="Location name"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm text-brand-dark-600 mb-1">Address</label>
-                            <input
-                              type="text"
-                              value={variation.address}
-                              onChange={(e) => updateLocationVariation(index, 'address', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
-                              placeholder="Full address"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <label className="block text-sm text-brand-dark-600 mb-1">Description</label>
-                          <textarea
-                            value={variation.description}
-                            onChange={(e) => updateLocationVariation(index, 'description', e.target.value)}
-                            rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent"
-                            placeholder="Description of this location"
-                          />
-                        </div>
-                        {formData.locationVariations.length > 1 && (
-                          <div className="mt-4">
-                            <button
-                              type="button"
-                              onClick={() => removeLocationVariation(index)}
-                              className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                            >
-                              Remove Location
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addLocationVariation}
-                      className="flex items-center text-brand-blue-600 hover:text-brand-blue-700 text-sm font-medium"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add Location Variation
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         );
@@ -1266,54 +1213,50 @@ export const CreateRecurringEventPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Max Participants */}
+              {/* Number of Max Tickets per Occurrence */}
               <div>
                 <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Max Participants <span className="text-red-500">*</span>
+                  Number of Max Tickets per Occurrence
                 </label>
                 <input
-                  id="maxParticipants"
+                  id="numberOfMaxTicketsPerOccurrence"
                   type="number"
                   min="1"
-                  value={formData.maxParticipants}
-                  onChange={(e) => handleFieldChange('maxParticipants', e.target.value)}
+                  value={formData.numberOfMaxTicketsPerOccurrence}
+                  onChange={(e) => handleFieldChange('numberOfMaxTicketsPerOccurrence', e.target.value)}
                   className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
-                    errors.maxParticipants ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    errors.numberOfMaxTicketsPerOccurrence ? 'border-red-500 bg-red-50' : 'border-gray-200'
                   }`}
-                  placeholder="Maximum number of participants per session"
+                  placeholder="Maximum number of tickets available per occurrence (optional)"
                 />
-                {errors.maxParticipants && (
+                {errors.numberOfMaxTicketsPerOccurrence && (
                   <p className="text-red-500 text-xs mt-1 flex items-center">
                     <AlertCircle size={12} className="mr-1" />
-                    {errors.maxParticipants}
+                    {errors.numberOfMaxTicketsPerOccurrence}
                   </p>
                 )}
               </div>
 
-              {/* Booking Closes */}
+              {/* Booking Closes Before Hrs */}
               <div>
                 <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Booking Closes <span className="text-red-500">*</span>
+                  Booking Closes Before Hrs <span className="text-red-500">*</span>
                 </label>
-                <select
-                  id="bookingCloses"
-                  value={formData.bookingCloses}
-                  onChange={(e) => handleFieldChange('bookingCloses', e.target.value)}
+                <input
+                  id="bookingClosesBeforeHrs"
+                  type="number"
+                  min="0"
+                  value={formData.bookingClosesBeforeHrs}
+                  onChange={(e) => handleFieldChange('bookingClosesBeforeHrs', e.target.value)}
                   className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
-                    errors.bookingCloses ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    errors.bookingClosesBeforeHrs ? 'border-red-500 bg-red-50' : 'border-gray-200'
                   }`}
-                >
-                  <option value="">Select booking closure time</option>
-                  <option value="1hr">1 hour before</option>
-                  <option value="2hr">2 hours before</option>
-                  <option value="4hr">4 hours before</option>
-                  <option value="24hr">24 hours before</option>
-                  <option value="48hr">48 hours before</option>
-                </select>
-                {errors.bookingCloses && (
+                  placeholder="Number of hours before event starts (e.g., 2, 24, 48)"
+                />
+                {errors.bookingClosesBeforeHrs && (
                   <p className="text-red-500 text-xs mt-1 flex items-center">
                     <AlertCircle size={12} className="mr-1" />
-                    {errors.bookingCloses}
+                    {errors.bookingClosesBeforeHrs}
                   </p>
                 )}
               </div>
