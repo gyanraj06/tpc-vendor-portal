@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, X, Loader2, Plus, Minus, AlertCircle } from 'lucide-react';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -14,7 +14,6 @@ export const CreateRecurringEventPage: React.FC = () => {
   const [toasterMessage, setToasterMessage] = useState('');
   const [isLoadingVerification, setIsLoadingVerification] = useState(true);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const formRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     // Event Name - ADDED
     eventName: '',
@@ -152,68 +151,6 @@ export const CreateRecurringEventPage: React.FC = () => {
     }
   };
 
-  // Scroll to first error
-  const scrollToFirstError = () => {
-    const firstErrorField = Object.keys(errors)[0];
-    if (firstErrorField) {
-      const element = document.getElementById(firstErrorField);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        element.focus();
-      }
-    }
-  };
-
-  // Validate current step
-  const validateCurrentStep = (): boolean => {
-    console.log('Validating step:', currentStep);
-    const newErrors: {[key: string]: string} = {};
-    
-    switch (currentStep) {
-      case 1: // Business Information - No validation needed (read-only fields)
-        break;
-      case 2: // Category of Experience
-        ['eventName', 'primaryCategory', 'subCategory', 'recurrenceType', 'recurrenceFrequency', 'daysOfWeek', 'timeSlots'].forEach(field => {
-          const error = validateField(field, (formData as any)[field]);
-          if (error) newErrors[field] = error;
-        });
-        break;
-      case 3: // Location Settings
-        if (formData.locationType === 'itinerary' && formData.itinerary[0].location === '') {
-          newErrors.itinerary = 'At least one itinerary item is required';
-        }
-        if (formData.locationType === 'multiple' && formData.locationVariations[0].name === '') {
-          newErrors.locationVariations = 'At least one location variation is required';
-        }
-        break;
-      case 4: // Pricing & Inclusions
-        ['eventType', 'ticketType', 'maxParticipants', 'bookingCloses', 'refundPolicy', 'cancellationPolicy'].forEach(field => {
-          const error = validateField(field, (formData as any)[field]);
-          if (error) newErrors[field] = error;
-        });
-        if (formData.eventType === 'paid') {
-          const priceError = validateField('ticketPricePerPerson', formData.ticketPricePerPerson);
-          if (priceError) newErrors.ticketPricePerPerson = priceError;
-        }
-        break;
-      case 5: // Operational & Safety
-        ['emergencyContactNumber', 'hasLiabilityInsurance'].forEach(field => {
-          const error = validateField(field, (formData as any)[field]);
-          if (error) newErrors[field] = error;
-        });
-        break;
-    }
-    
-    console.log('Errors found:', newErrors);
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length > 0) {
-      setTimeout(scrollToFirstError, 100);
-      return false;
-    }
-    
-    return true;
-  };
 
   // Show loading while checking business verification
   if (isLoadingVerification) {
