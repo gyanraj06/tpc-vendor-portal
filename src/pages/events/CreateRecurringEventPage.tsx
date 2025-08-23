@@ -68,7 +68,7 @@ export const CreateRecurringEventPage: React.FC = () => {
             // Show requirements page as step 0 (embedded in form)
             setCurrentStep(0);
           } else if (vendorData.vendorType === 'LOCAL_EVENT_HOST' && vendorData.business_details_verified) {
-            // If business details are verified, start from experience category (step 1)
+            // If business details are verified, start from business information (step 1)
             setCurrentStep(1);
           }
         } else {
@@ -246,7 +246,9 @@ export const CreateRecurringEventPage: React.FC = () => {
   };
 
   const handlePrevious = () => {
-    if (currentStep > 0) {
+    // Verified users can never go below step 1, unverified users can never go below step 0
+    const minStep = (vendor?.business_details_verified) ? 1 : 0;
+    if (currentStep > minStep) {
       setCurrentStep(currentStep - 1);
     }
   };
@@ -1707,23 +1709,22 @@ export const CreateRecurringEventPage: React.FC = () => {
             {renderStepContent()}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
-              <button
-                onClick={handlePrevious}
-                disabled={currentStep === 0 || isSubmitting}
-                className={`
-                  flex items-center space-x-2 px-8 py-4 rounded-2xl font-semibold transition-all duration-200 text-lg
-                  ${currentStep === 0 || isSubmitting
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-200 text-brand-dark-700 hover:bg-gray-300 hover:shadow-md transform hover:scale-105'
-                  }
-                `}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                <span>Previous</span>
-              </button>
+            <div className={`flex items-center mt-6 pt-4 border-t border-gray-100 ${
+              currentStep <= 1 ? 'justify-end' : 'justify-between'
+            }`}>
+              {/* Previous button only shows on steps 2 and above */}
+              {currentStep >= 2 && (
+                <button
+                  onClick={handlePrevious}
+                  disabled={isSubmitting}
+                  className="flex items-center space-x-2 px-8 py-4 rounded-2xl font-semibold transition-all duration-200 text-lg bg-gray-200 text-brand-dark-700 hover:bg-gray-300 hover:shadow-md transform hover:scale-105"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span>Previous</span>
+                </button>
+              )}
               
               <button
                 onClick={handleNext}

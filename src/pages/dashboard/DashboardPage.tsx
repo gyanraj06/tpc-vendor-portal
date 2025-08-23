@@ -5,14 +5,12 @@ import { AuthService, type Vendor } from '../../services/authService';
 import { EventService } from '../../services/eventService';
 import { AnalyticsSection } from '../../components/dashboard/AnalyticsSection';
 import { getVendorLabels } from '../../utils/vendorLabels';
-import { BusinessVerificationSlideIn } from '../../components/ui/BusinessVerificationSlideIn';
 
 export const DashboardPage: React.FC = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [totalListings, setTotalListings] = useState(0);
   const [isLoadingListings, setIsLoadingListings] = useState(true);
-  const [showBusinessVerificationModal, setShowBusinessVerificationModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,15 +33,6 @@ export const DashboardPage: React.FC = () => {
       if (vendorData) {
         setVendor(vendorData);
         
-        // Show business verification modal for LOCAL_EVENT_HOST vendors
-        // who haven't completed verification (simulate check for now)
-        if (vendorData.vendorType === 'LOCAL_EVENT_HOST' && 
-            !vendorData.business_details_verified && 
-            !sessionStorage.getItem('businessVerificationDismissed')) {
-          setTimeout(() => {
-            setShowBusinessVerificationModal(true);
-          }, 2000); // Show after 2 seconds
-        }
       }
     } catch (error) {
       console.error('Failed to load vendor data:', error);
@@ -78,11 +67,6 @@ export const DashboardPage: React.FC = () => {
   // Get dynamic labels based on vendor type
   const vendorLabels = getVendorLabels(vendor?.vendorType);
 
-  const handleBusinessVerificationClose = () => {
-    setShowBusinessVerificationModal(false);
-    // Remember user dismissed the modal for this session
-    sessionStorage.setItem('businessVerificationDismissed', 'true');
-  };
 
   if (isLoading) {
     return (
@@ -407,12 +391,6 @@ export const DashboardPage: React.FC = () => {
       {/* Analytics Section */}
       <AnalyticsSection />
 
-      {/* Business Verification Slide-In */}
-      <BusinessVerificationSlideIn
-        isOpen={showBusinessVerificationModal}
-        onClose={handleBusinessVerificationClose}
-        vendorName={vendor?.name || undefined}
-      />
     </div>
   );
 };
