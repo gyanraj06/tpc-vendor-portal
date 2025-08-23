@@ -332,13 +332,40 @@ export class AuthService {
 
   static async handleAuthCallback(): Promise<Vendor | null> {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      // First, try to get the session from the URL hash if it exists
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (error || !user) {
-        console.error('Auth callback error:', error);
+      if (sessionError) {
+        console.error('Session error:', sessionError);
         return null;
       }
 
+      // If no session, wait for the auth state to be set from URL hash
+      if (!session) {
+        console.log('No session found, waiting for auth state...');
+        // Wait a bit for Supabase to process URL hash
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Try again
+        const { data: { session: retrySession }, error: retryError } = await supabase.auth.getSession();
+        
+        if (retryError || !retrySession) {
+          console.error('Auth callback error:', retryError);
+          return null;
+        }
+        
+        return this.processAuthenticatedUser(retrySession.user);
+      }
+
+      return this.processAuthenticatedUser(session.user);
+    } catch (error) {
+      console.error('Auth callback error:', error);
+      return null;
+    }
+  }
+
+  private static async processAuthenticatedUser(user: any): Promise<Vendor | null> {
+    try {
       // Check if vendor profile exists
       const { data: existingProfile, error: profileError } = await supabase
         .from('vendor_profiles')
@@ -397,7 +424,7 @@ export class AuthService {
         };
       }
     } catch (error) {
-      console.error('Auth callback error:', error);
+      console.error('Process authenticated user error:', error);
       return null;
     }
   }

@@ -1,9 +1,18 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar';
 import LandingImage from '../../assets/landing.jpg';
 
 export const VendorLandingPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if there are OAuth tokens in the URL hash (fallback for misconfigured Supabase redirect)
+    if (window.location.hash.includes('access_token')) {
+      // Redirect to the proper auth callback page to handle the tokens
+      navigate('/auth/callback' + window.location.hash);
+    }
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50">

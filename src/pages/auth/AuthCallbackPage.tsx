@@ -13,6 +13,11 @@ export const AuthCallbackPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
+        // Clear the URL hash to avoid showing tokens in address bar
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+
         const vendor = await AuthService.handleAuthCallback();
         
         if (vendor) {
@@ -34,7 +39,9 @@ export const AuthCallbackPage: React.FC = () => {
       }
     };
 
-    handleAuthCallback();
+    // Add a small delay to allow Supabase to process the URL hash
+    const timer = setTimeout(handleAuthCallback, 100);
+    return () => clearTimeout(timer);
   }, [navigate]);
 
   if (isLoading) {
