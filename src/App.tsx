@@ -5,7 +5,6 @@ import { AuthPage } from './pages/auth/AuthPage';
 import { ProfileSetupPage } from './pages/auth/ProfileSetupPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { EditProfilePage } from './pages/profile/EditProfilePage';
-import { RecurringEventsVerificationPage } from './pages/events/RecurringEventsVerificationPage';
 import { CreateEventPage } from './pages/events/CreateEventPage';
 import { CreateRecurringEventPage } from './pages/events/CreateRecurringEventPage';
 import { AllListingsPage } from './pages/listings/AllListingsPage';
@@ -45,7 +44,6 @@ function App() {
           <Route path="/learnings" element={<Layout><LearningsPage /></Layout>} />
           <Route path="/sustainability" element={<Layout><SustainabilityPage /></Layout>} />
           <Route path="/edit-profile" element={<Layout><EditProfilePage /></Layout>} />
-          <Route path="/recurring-events-verification" element={<Layout><RecurringEventsVerificationPage /></Layout>} />
           <Route path="/create-event" element={<Layout><CreateEventPage /></Layout>} />
           <Route path="/create-recurring-event" element={<Layout><CreateRecurringEventPage /></Layout>} />
         </Routes>

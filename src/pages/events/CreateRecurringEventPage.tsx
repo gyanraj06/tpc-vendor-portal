@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, Loader2, Plus, Minus } from 'lucide-react';
+import { Upload, X, Loader2, Plus, Minus, AlertCircle } from 'lucide-react';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { AuthService, type Vendor } from '../../services/authService';
 import { ToasterNotification } from '../../components/ui/ToasterNotification';
@@ -13,7 +13,12 @@ export const CreateRecurringEventPage: React.FC = () => {
   const [showToaster, setShowToaster] = useState(false);
   const [toasterMessage, setToasterMessage] = useState('');
   const [isLoadingVerification, setIsLoadingVerification] = useState(true);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const formRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
+    // Event Name - ADDED
+    eventName: '',
+    
     // Category of Experience
     primaryCategory: '',
     subCategory: '',
@@ -86,6 +91,130 @@ export const CreateRecurringEventPage: React.FC = () => {
     setShowToaster(true);
   };
 
+  // Validation functions
+  const validateField = (field: string, value: any): string => {
+    switch (field) {
+      case 'eventName':
+        return !value?.trim() ? 'Event name is required' : '';
+      case 'primaryCategory':
+        return !value ? 'Primary category is required' : '';
+      case 'subCategory':
+        return !value?.trim() ? 'Sub category is required' : '';
+      case 'recurrenceType':
+        return !value ? 'Recurrence type is required' : '';
+      case 'recurrenceFrequency':
+        return !value ? 'Recurrence frequency is required' : '';
+      case 'daysOfWeek':
+        return value.length === 0 ? 'At least one day must be selected' : '';
+      case 'timeSlots':
+        return value.length === 0 || !value[0].startTime || !value[0].endTime ? 'At least one complete time slot is required' : '';
+      case 'locationType':
+        return !value ? 'Location type is required' : '';
+      case 'eventType':
+        return !value ? 'Event type is required' : '';
+      case 'ticketPricePerPerson':
+        return formData.eventType === 'paid' && !value?.trim() ? 'Ticket price is required for paid events' : 
+               formData.eventType === 'paid' && isNaN(Number(value)) ? 'Ticket price must be a number' : '';
+      case 'ticketType':
+        return !value ? 'Ticket type is required' : '';
+      case 'maxParticipants':
+        return !value?.trim() ? 'Max participants is required' : 
+               isNaN(Number(value)) || Number(value) <= 0 ? 'Max participants must be a positive number' : '';
+      case 'bookingCloses':
+        return !value ? 'Booking closure time is required' : '';
+      case 'refundPolicy':
+        return !value ? 'Refund policy is required' : '';
+      case 'cancellationPolicy':
+        return !value ? 'Cancellation policy is required' : '';
+      case 'emergencyContactNumber':
+        return !value?.trim() ? 'Emergency contact is required' : 
+               !/^\d{10}$/.test(value.replace(/\D/g, '')) ? 'Emergency contact must be 10 digits' : '';
+      case 'hasLiabilityInsurance':
+        return !value ? 'Please select insurance option' : '';
+      default:
+        return '';
+    }
+  };
+
+  // Real-time validation handler
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
+    // Validate field in real-time
+    const error = validateField(field, value);
+    if (error) {
+      setErrors(prev => ({ ...prev, [field]: error }));
+    }
+  };
+
+  // Scroll to first error
+  const scrollToFirstError = () => {
+    const firstErrorField = Object.keys(errors)[0];
+    if (firstErrorField) {
+      const element = document.getElementById(firstErrorField);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus();
+      }
+    }
+  };
+
+  // Validate current step
+  const validateCurrentStep = (): boolean => {
+    console.log('Validating step:', currentStep);
+    const newErrors: {[key: string]: string} = {};
+    
+    switch (currentStep) {
+      case 1: // Business Information - No validation needed (read-only fields)
+        break;
+      case 2: // Category of Experience
+        ['eventName', 'primaryCategory', 'subCategory', 'recurrenceType', 'recurrenceFrequency', 'daysOfWeek', 'timeSlots'].forEach(field => {
+          const error = validateField(field, (formData as any)[field]);
+          if (error) newErrors[field] = error;
+        });
+        break;
+      case 3: // Location Settings
+        if (formData.locationType === 'itinerary' && formData.itinerary[0].location === '') {
+          newErrors.itinerary = 'At least one itinerary item is required';
+        }
+        if (formData.locationType === 'multiple' && formData.locationVariations[0].name === '') {
+          newErrors.locationVariations = 'At least one location variation is required';
+        }
+        break;
+      case 4: // Pricing & Inclusions
+        ['eventType', 'ticketType', 'maxParticipants', 'bookingCloses', 'refundPolicy', 'cancellationPolicy'].forEach(field => {
+          const error = validateField(field, (formData as any)[field]);
+          if (error) newErrors[field] = error;
+        });
+        if (formData.eventType === 'paid') {
+          const priceError = validateField('ticketPricePerPerson', formData.ticketPricePerPerson);
+          if (priceError) newErrors.ticketPricePerPerson = priceError;
+        }
+        break;
+      case 5: // Operational & Safety
+        ['emergencyContactNumber', 'hasLiabilityInsurance'].forEach(field => {
+          const error = validateField(field, (formData as any)[field]);
+          if (error) newErrors[field] = error;
+        });
+        break;
+    }
+    
+    console.log('Errors found:', newErrors);
+    setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      setTimeout(scrollToFirstError, 100);
+      return false;
+    }
+    
+    return true;
+  };
+
   // Show loading while checking business verification
   if (isLoadingVerification) {
     return (
@@ -108,6 +237,40 @@ export const CreateRecurringEventPage: React.FC = () => {
   ];
 
   const handleNext = async () => {
+    // ALL mandatory fields validation
+    const requiredFields = {
+      2: ['eventName', 'primaryCategory', 'subCategory', 'recurrenceType', 'recurrenceFrequency', 'daysOfWeek', 'timeSlots'],
+      3: ['locationType'],
+      4: ['eventType', 'ticketType', 'maxParticipants', 'bookingCloses', 'refundPolicy', 'cancellationPolicy'],
+      5: ['emergencyContactNumber', 'hasLiabilityInsurance']
+    };
+
+    const fieldsToValidate = (requiredFields as any)[currentStep] || [];
+    const newErrors: {[key: string]: string} = {};
+    
+    fieldsToValidate.forEach((field: string) => {
+      const value = (formData as any)[field];
+      if (!value || (Array.isArray(value) && value.length === 0) || value.trim?.() === '') {
+        newErrors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      // Scroll to first error
+      setTimeout(() => {
+        const firstField = Object.keys(newErrors)[0];
+        const element = document.getElementById(firstField);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    setErrors({});
+    
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     } else if (currentStep === 5) {
@@ -157,10 +320,7 @@ export const CreateRecurringEventPage: React.FC = () => {
   const updateTimeSlot = (index: number, field: 'startTime' | 'endTime', value: Date | null) => {
     const newTimeSlots = [...formData.timeSlots];
     newTimeSlots[index][field] = value;
-    setFormData({
-      ...formData,
-      timeSlots: newTimeSlots
-    });
+    handleFieldChange('timeSlots', newTimeSlots);
   };
 
   const addItineraryItem = () => {
@@ -579,15 +739,43 @@ export const CreateRecurringEventPage: React.FC = () => {
             </div>
 
             <div className="space-y-6">
+              {/* Event Name - ADDED */}
+              <div>
+                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
+                  Event Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="eventName"
+                  type="text"
+                  value={formData.eventName || ''}
+                  onChange={(e) => handleFieldChange('eventName', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.eventName ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
+                  placeholder="Enter your event/experience name"
+                  required
+                />
+                {errors.eventName && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.eventName}
+                  </p>
+                )}
+              </div>
+
               {/* Primary Category */}
               <div>
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Primary Category <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="primaryCategory"
                   value={formData.primaryCategory}
-                  onChange={(e) => setFormData({...formData, primaryCategory: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  onChange={(e) => handleFieldChange('primaryCategory', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.primaryCategory ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
+                  required
                 >
                   <option value="">Select primary category</option>
                   <option value="adventure">Adventure & Outdoor</option>
@@ -601,6 +789,12 @@ export const CreateRecurringEventPage: React.FC = () => {
                   <option value="educational">Educational</option>
                   <option value="other">Other</option>
                 </select>
+                {errors.primaryCategory && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.primaryCategory}
+                  </p>
+                )}
               </div>
 
               {/* Sub Category */}
@@ -609,12 +803,21 @@ export const CreateRecurringEventPage: React.FC = () => {
                   Sub Category <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="subCategory"
                   type="text"
                   value={formData.subCategory}
-                  onChange={(e) => setFormData({...formData, subCategory: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  onChange={(e) => handleFieldChange('subCategory', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.subCategory ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
                   placeholder="e.g., Hiking, Cooking Classes, Pottery Workshop"
                 />
+                {errors.subCategory && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.subCategory}
+                  </p>
+                )}
               </div>
 
               {/* Recurrence and Type */}
@@ -622,6 +825,7 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Recurrence Type <span className="text-red-500">*</span>
                 </label>
+<div id="recurrenceType">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
                     { value: 'daily', label: 'Daily', desc: 'Every day or specific days' },
@@ -631,11 +835,11 @@ export const CreateRecurringEventPage: React.FC = () => {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setFormData({...formData, recurrenceType: option.value})}
+                      onClick={() => handleFieldChange('recurrenceType', option.value)}
                       className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
                         formData.recurrenceType === option.value
                           ? 'border-brand-blue-500 bg-brand-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          : errors.recurrenceType ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <div className={`font-semibold ${
@@ -647,6 +851,13 @@ export const CreateRecurringEventPage: React.FC = () => {
                     </button>
                   ))}
                 </div>
+                {errors.recurrenceType && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.recurrenceType}
+                  </p>
+                )}
+                </div>
               </div>
 
               {/* Days of Week */}
@@ -654,6 +865,7 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Days of Week <span className="text-red-500">*</span>
                 </label>
+<div id="daysOfWeek">
                 <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
                   {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                     <button
@@ -663,17 +875,24 @@ export const CreateRecurringEventPage: React.FC = () => {
                         const newDays = formData.daysOfWeek.includes(day)
                           ? formData.daysOfWeek.filter(d => d !== day)
                           : [...formData.daysOfWeek, day];
-                        setFormData({...formData, daysOfWeek: newDays});
+                        handleFieldChange('daysOfWeek', newDays);
                       }}
                       className={`p-3 rounded-xl border-2 transition-all duration-200 text-center ${
                         formData.daysOfWeek.includes(day)
                           ? 'border-brand-blue-500 bg-brand-blue-50 text-brand-blue-700'
-                          : 'border-gray-200 hover:border-gray-300 text-brand-dark-700'
+                          : errors.daysOfWeek ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300 text-brand-dark-700'
                       }`}
                     >
                       <div className="text-sm font-medium">{day.slice(0, 3)}</div>
                     </button>
                   ))}
+                </div>
+                {errors.daysOfWeek && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.daysOfWeek}
+                  </p>
+                )}
                 </div>
               </div>
 
@@ -682,9 +901,11 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Time Slots <span className="text-red-500">*</span>
                 </label>
-                <div className="space-y-4">
+                <div id="timeSlots" className="space-y-4">
                   {formData.timeSlots.map((slot, index) => (
-                    <div key={index} className="flex items-center space-x-4">
+                    <div key={index} className={`flex items-center space-x-4 ${
+                      errors.timeSlots ? 'border border-red-500 bg-red-50 rounded-xl p-4' : ''
+                    }`}>
                       <div className="flex-1">
                         <label className="block text-sm text-brand-dark-600 mb-1">Start Time</label>
                         <TimePicker
@@ -741,6 +962,12 @@ export const CreateRecurringEventPage: React.FC = () => {
                     Add Another Time Slot
                   </button>
                 </div>
+                {errors.timeSlots && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.timeSlots}
+                  </p>
+                )}
               </div>
 
               {/* Recurrence Frequency */}
@@ -748,10 +975,13 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Recurrence Frequency <span className="text-red-500">*</span>
                 </label>
-                <select
+<select
+                  id="recurrenceFrequency"
                   value={formData.recurrenceFrequency}
-                  onChange={(e) => setFormData({...formData, recurrenceFrequency: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  onChange={(e) => handleFieldChange('recurrenceFrequency', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.recurrenceFrequency ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
                 >
                   <option value="">Select frequency</option>
                   <option value="every_week">Every Week</option>
@@ -760,6 +990,12 @@ export const CreateRecurringEventPage: React.FC = () => {
                   <option value="seasonal">Seasonal</option>
                   <option value="custom">Custom Schedule</option>
                 </select>
+                {errors.recurrenceFrequency && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.recurrenceFrequency}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -784,7 +1020,7 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Location Type <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div id="locationType" className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
                     { value: 'fixed', label: 'Fixed Location', desc: 'Same venue every time' },
                     { value: 'itinerary', label: 'Itinerary Builder', desc: 'Multiple locations in sequence' },
@@ -793,11 +1029,11 @@ export const CreateRecurringEventPage: React.FC = () => {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setFormData({...formData, locationType: option.value})}
+                      onClick={() => handleFieldChange('locationType', option.value)}
                       className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
                         formData.locationType === option.value
                           ? 'border-brand-blue-500 bg-brand-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          : errors.locationType ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <div className={`font-semibold ${
@@ -809,6 +1045,12 @@ export const CreateRecurringEventPage: React.FC = () => {
                     </button>
                   ))}
                 </div>
+                {errors.locationType && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.locationType}
+                  </p>
+                )}
               </div>
 
               {/* Itinerary Builder - Show only if itinerary type is selected */}
@@ -965,7 +1207,7 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Event Type <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="eventType" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
                     { value: 'paid', label: 'Paid Experience', desc: 'Charge participants for the experience' },
                     { value: 'free', label: 'Free Experience', desc: 'No charge for participants' }
@@ -973,11 +1215,11 @@ export const CreateRecurringEventPage: React.FC = () => {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setFormData({...formData, eventType: option.value})}
+                      onClick={() => handleFieldChange('eventType', option.value)}
                       className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
                         formData.eventType === option.value
                           ? 'border-brand-blue-500 bg-brand-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          : errors.eventType ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <div className={`font-semibold ${
@@ -989,6 +1231,12 @@ export const CreateRecurringEventPage: React.FC = () => {
                     </button>
                   ))}
                 </div>
+                {errors.eventType && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.eventType}
+                  </p>
+                )}
               </div>
 
               {/* Ticket Price Per Person - Show only if paid */}
@@ -1000,7 +1248,7 @@ export const CreateRecurringEventPage: React.FC = () => {
                   <input
                     type="number"
                     value={formData.ticketPricePerPerson}
-                    onChange={(e) => setFormData({...formData, ticketPricePerPerson: e.target.value})}
+                    onChange={(e) => handleFieldChange('ticketPricePerPerson', e.target.value)}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
                     placeholder="Enter price in ₹"
                   />
@@ -1013,15 +1261,24 @@ export const CreateRecurringEventPage: React.FC = () => {
                   Ticket Type <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="ticketType"
                   value={formData.ticketType}
-                  onChange={(e) => setFormData({...formData, ticketType: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  onChange={(e) => handleFieldChange('ticketType', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.ticketType ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
                 >
                   <option value="">Select ticket type</option>
                   <option value="individual">Individual Booking</option>
                   <option value="group">Group Booking</option>
                   <option value="both">Both Individual & Group</option>
                 </select>
+                {errors.ticketType && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.ticketType}
+                  </p>
+                )}
               </div>
 
               {/* Add-on Services */}
@@ -1078,24 +1335,36 @@ export const CreateRecurringEventPage: React.FC = () => {
                   Max Participants <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="maxParticipants"
                   type="number"
                   min="1"
                   value={formData.maxParticipants}
-                  onChange={(e) => setFormData({...formData, maxParticipants: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  onChange={(e) => handleFieldChange('maxParticipants', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.maxParticipants ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
                   placeholder="Maximum number of participants per session"
                 />
+                {errors.maxParticipants && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.maxParticipants}
+                  </p>
+                )}
               </div>
 
               {/* Booking Closes */}
               <div>
                 <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Booking Closes
+                  Booking Closes <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="bookingCloses"
                   value={formData.bookingCloses}
-                  onChange={(e) => setFormData({...formData, bookingCloses: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  onChange={(e) => handleFieldChange('bookingCloses', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.bookingCloses ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
                 >
                   <option value="">Select booking closure time</option>
                   <option value="1hr">1 hour before</option>
@@ -1104,6 +1373,12 @@ export const CreateRecurringEventPage: React.FC = () => {
                   <option value="24hr">24 hours before</option>
                   <option value="48hr">48 hours before</option>
                 </select>
+                {errors.bookingCloses && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.bookingCloses}
+                  </p>
+                )}
               </div>
 
               {/* Early Bird Coupon */}
@@ -1138,12 +1413,15 @@ export const CreateRecurringEventPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                    Refund Policy
+                    Refund Policy <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="refundPolicy"
                     value={formData.refundPolicy}
-                    onChange={(e) => setFormData({...formData, refundPolicy: e.target.value})}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                    onChange={(e) => handleFieldChange('refundPolicy', e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                      errors.refundPolicy ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    }`}
                   >
                     <option value="">Select refund policy</option>
                     <option value="no-refund">No Refund</option>
@@ -1151,21 +1429,36 @@ export const CreateRecurringEventPage: React.FC = () => {
                     <option value="48hr-full">48 Hour Full Refund</option>
                     <option value="72hr-full">72 Hour Full Refund</option>
                   </select>
+                  {errors.refundPolicy && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center">
+                      <AlertCircle size={12} className="mr-1" />
+                      {errors.refundPolicy}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                    Cancellation Policy
+                    Cancellation Policy <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="cancellationPolicy"
                     value={formData.cancellationPolicy}
-                    onChange={(e) => setFormData({...formData, cancellationPolicy: e.target.value})}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                    onChange={(e) => handleFieldChange('cancellationPolicy', e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                      errors.cancellationPolicy ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                    }`}
                   >
                     <option value="">Select cancellation policy</option>
                     <option value="flexible">Flexible - Cancel anytime</option>
                     <option value="moderate">Moderate - 24hr notice</option>
                     <option value="strict">Strict - 48hr notice</option>
                   </select>
+                  {errors.cancellationPolicy && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center">
+                      <AlertCircle size={12} className="mr-1" />
+                      {errors.cancellationPolicy}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1202,15 +1495,24 @@ export const CreateRecurringEventPage: React.FC = () => {
               {/* Emergency Contact */}
               <div>
                 <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Emergency Contact Number for Events (Optional)
+                  Emergency Contact Number for Events <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="emergencyContactNumber"
                   type="tel"
                   value={formData.emergencyContactNumber}
-                  onChange={(e) => setFormData({...formData, emergencyContactNumber: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  onChange={(e) => handleFieldChange('emergencyContactNumber', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white ${
+                    errors.emergencyContactNumber ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                  }`}
                   placeholder="+91 XXXXX XXXXX"
                 />
+                {errors.emergencyContactNumber && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.emergencyContactNumber}
+                  </p>
+                )}
               </div>
 
               {/* Liability Insurance */}
@@ -1218,25 +1520,33 @@ export const CreateRecurringEventPage: React.FC = () => {
                 <label className="block text-sm font-medium text-brand-dark-900 mb-4">
                   Do you have liability insurance for your experience? <span className="text-red-500">*</span>
                 </label>
-                <div className="space-y-3">
+                <div id="hasLiabilityInsurance" className="space-y-3">
                   {[
                     { value: 'yes', label: 'Yes, I have liability insurance' },
                     { value: 'no', label: 'No, I don\'t have liability insurance' },
                     { value: 'planning', label: 'I\'m planning to get insurance' }
                   ].map(option => (
-                    <label key={option.value} className="flex items-center p-4 border border-gray-300 rounded-xl hover:bg-gray-50">
+                    <label key={option.value} className={`flex items-center p-4 border rounded-xl hover:bg-gray-50 ${
+                      errors.hasLiabilityInsurance ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}>
                       <input
                         type="radio"
                         name="hasLiabilityInsurance"
                         value={option.value}
                         checked={formData.hasLiabilityInsurance === option.value}
-                        onChange={(e) => setFormData({...formData, hasLiabilityInsurance: e.target.value})}
+                        onChange={(e) => handleFieldChange('hasLiabilityInsurance', e.target.value)}
                         className="mr-3"
                       />
                       <span>{option.label}</span>
                     </label>
                   ))}
                 </div>
+                {errors.hasLiabilityInsurance && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle size={12} className="mr-1" />
+                    {errors.hasLiabilityInsurance}
+                  </p>
+                )}
               </div>
 
               {/* Experience Photos */}
@@ -1537,10 +1847,10 @@ export const CreateRecurringEventPage: React.FC = () => {
               
               <button
                 onClick={handleNext}
-                disabled={(currentStep === 5 && !formData.agreeToTerms) || isSubmitting || currentStep === 0}
+                disabled={(currentStep === 5 && !formData.agreeToTerms) || isSubmitting}
                 className={`
                   flex items-center space-x-2 px-8 py-4 rounded-2xl font-semibold transition-all duration-200 text-lg
-                  ${(currentStep === 5 && !formData.agreeToTerms) || isSubmitting || currentStep === 0
+                  ${(currentStep === 5 && !formData.agreeToTerms) || isSubmitting
                     ? 'bg-gray-400 text-white cursor-not-allowed'
                     : currentStep === 5
                     ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl transform hover:scale-105'
