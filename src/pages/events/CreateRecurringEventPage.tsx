@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, X, Loader2, Plus, Minus, AlertCircle } from 'lucide-react';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-import { AuthService, type Vendor } from '../../services/authService';
+import { AuthService } from '../../services/authService';
+import { RecurringEventService } from '../../services/recurringEventService';
 import { ToasterNotification } from '../../components/ui/ToasterNotification';
 
 export const CreateRecurringEventPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState('');
-  const [vendor, setVendor] = useState<Vendor | null>(null);
   const [showToaster, setShowToaster] = useState(false);
   const [toasterMessage, setToasterMessage] = useState('');
   const [isLoadingVerification, setIsLoadingVerification] = useState(true);
@@ -57,32 +57,21 @@ export const CreateRecurringEventPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkBusinessVerification = async () => {
+    const checkUserAuth = async () => {
       try {
         const vendorData = await AuthService.getCurrentUser();
-        if (vendorData) {
-          setVendor(vendorData);
-          
-          // Check if vendor needs business verification
-          if (vendorData.vendorType === 'LOCAL_EVENT_HOST' && !vendorData.business_details_verified) {
-            // Show requirements page as step 0 (embedded in form)
-            setCurrentStep(0);
-          } else if (vendorData.vendorType === 'LOCAL_EVENT_HOST' && vendorData.business_details_verified) {
-            // If business details are verified, start from business information (step 1)
-            setCurrentStep(1);
-          }
-        } else {
+        if (!vendorData) {
           navigate('/dashboard');
         }
       } catch (error) {
-        console.error('Failed to check business verification:', error);
+        console.error('Failed to check user authentication:', error);
         navigate('/dashboard');
       } finally {
         setIsLoadingVerification(false);
       }
     };
 
-    checkBusinessVerification();
+    checkUserAuth();
   }, [navigate]);
 
   const showToasterMessage = (message: string) => {
@@ -188,10 +177,10 @@ export const CreateRecurringEventPage: React.FC = () => {
     }
     
     const requiredFields = {
-      2: step2Fields,
-      3: step3Fields,
-      4: ['eventType', 'ticketType', 'bookingClosesBeforeHrs', 'refundPolicy', 'cancellationPolicy'],
-      5: ['emergencyContactNumber', 'hasLiabilityInsurance']
+      1: step2Fields,
+      2: step3Fields,
+      3: ['eventType', 'ticketType', 'bookingClosesBeforeHrs', 'refundPolicy', 'cancellationPolicy'],
+      4: ['emergencyContactNumber', 'hasLiabilityInsurance']
     };
 
     const fieldsToValidate = (requiredFields as any)[currentStep] || [];
@@ -233,21 +222,31 @@ export const CreateRecurringEventPage: React.FC = () => {
 
     try {
       console.log('Submitting recurring event form:', formData);
-      setSubmitSuccess('Recurring event created successfully!');
       
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+      const result = await RecurringEventService.createRecurringEvent(formData);
+      
+      if (result.success) {
+        setSubmitSuccess(result.message || 'Recurring event created successfully!');
+        showToasterMessage('Recurring event created successfully!');
+        
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        console.error('Recurring event creation failed:', result.error);
+        showToasterMessage(result.error || 'Failed to create recurring event');
+      }
     } catch (error) {
       console.error('Submit error:', error);
+      showToasterMessage('An unexpected error occurred while creating the recurring event');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handlePrevious = () => {
-    // Verified users can never go below step 1, unverified users can never go below step 0
-    const minStep = (vendor?.business_details_verified) ? 1 : 0;
+    // Start from step 1 now (Experience Category) since we removed Business Info step
+    const minStep = 1;
     if (currentStep > minStep) {
       setCurrentStep(currentStep - 1);
     }
@@ -324,7 +323,7 @@ export const CreateRecurringEventPage: React.FC = () => {
   };
 
 
-  const handleMultipleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultipleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
       const fileArray = Array.from(files);
@@ -332,14 +331,39 @@ export const CreateRecurringEventPage: React.FC = () => {
         ...formData,
         experiencePhotos: [...formData.experiencePhotos, ...fileArray]
       });
+
+      // Upload files and get URLs
+      const uploadPromises = fileArray.map(async (file) => {
+        try {
+          const result = await RecurringEventService.uploadExperiencePhoto(file);
+          return result.success ? result.url : null;
+        } catch (error) {
+          console.error('Photo upload failed:', error);
+          return null;
+        }
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      const validUrls = uploadedUrls.filter((url): url is string => url !== null);
+      
+      if (validUrls.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          experiencePhotoUrls: [...(prev.experiencePhotoUrls || []), ...validUrls]
+        }));
+        
+        showToasterMessage(`${validUrls.length} photo(s) uploaded successfully!`);
+      }
     }
   };
 
   const removeExperiencePhoto = (index: number) => {
     const newPhotos = formData.experiencePhotos.filter((_, i) => i !== index);
+    const newUrls = formData.experiencePhotoUrls?.filter((_, i) => i !== index) || [];
     setFormData({
       ...formData,
-      experiencePhotos: newPhotos
+      experiencePhotos: newPhotos,
+      experiencePhotoUrls: newUrls
     });
   };
 
@@ -465,195 +489,6 @@ export const CreateRecurringEventPage: React.FC = () => {
           </div>
         );
       case 1:
-        return (
-          <div className="space-y-10">
-            <div className="text-center mb-12">
-              <div className="w-16 h-16 bg-gradient-to-br from-brand-blue-500 to-brand-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-6 4h6m-6 4h6" />
-                </svg>
-              </div>
-              <h2 className="text-3xl font-bold text-brand-dark-900 mb-4">Business Information</h2>
-              <p className="text-lg text-brand-dark-600">Tell us about your business and organization</p>
-            </div>
-
-            <div className="space-y-6">
-              {/* Business Name */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Business Name / Brand Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={vendor?.business_name || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Enter your business or brand name"
-                />
-              </div>
-
-              {/* Legal Registered Name */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Legal Registered Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={vendor?.legal_name || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Legal name as registered"
-                />
-              </div>
-
-              {/* Business Type */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-4">
-                  Business Type <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    { value: 'sole_proprietorship', label: 'Sole Proprietorship' },
-                    { value: 'partnership', label: 'Partnership' },
-                    { value: 'private_limited', label: 'Private Limited' },
-                    { value: 'public_limited', label: 'Public Limited' },
-                    { value: 'llp', label: 'LLP' },
-                    { value: 'other', label: 'Other' }
-                  ].map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      disabled
-                      className={`p-4 rounded-2xl border-2 transition-all duration-200 text-center ${
-                        vendor?.business_type === option.value
-                          ? 'border-brand-blue-500 bg-brand-blue-50 text-brand-blue-700'
-                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      <div className="text-sm font-medium">{option.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Business Registration Document */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Business Registration Document
-                </label>
-                <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-2xl hover:border-brand-blue-500 cursor-pointer transition-colors">
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    disabled
-                    className="hidden"
-                  />
-                  <Upload className="w-6 h-6 mr-3 text-gray-400" />
-                  <span className="text-gray-600">
-                    Upload registration document
-                  </span>
-                </label>
-              </div>
-
-              {/* Website or Social Link */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Website or Social Link <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={vendor?.website_or_social_link || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="https://your-website.com or social media link"
-                />
-              </div>
-
-              {/* Registered Address */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Registered Address <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={vendor?.registered_address || ''}
-                  readOnly
-                  disabled
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Complete registered address with pincode"
-                />
-              </div>
-
-              {/* Authorized Contact Person */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Authorized Contact Person - Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={vendor?.authorized_contact_person_name || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Full name of authorized contact person"
-                />
-              </div>
-
-              {/* Contact Phone Number */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Contact Phone Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  value={vendor?.contact_phone_number || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="+91 XXXXX XXXXX"
-                />
-              </div>
-
-              {/* Contact Email */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Contact Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={vendor?.contact_email || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="contact@business.com"
-                />
-              </div>
-
-              {/* ID Proof of Authorized Person */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  ID Proof of Authorized Person
-                </label>
-                <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-2xl hover:border-brand-blue-500 cursor-pointer transition-colors">
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    disabled
-                    className="hidden"
-                  />
-                  <Upload className="w-6 h-6 mr-3 text-gray-400" />
-                  <span className="text-gray-600">
-                    Upload ID proof (Aadhar, PAN, etc.)
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-        );
-      case 2:
         return (
           <div className="space-y-10">
             <div className="text-center mb-12">
@@ -926,7 +761,7 @@ export const CreateRecurringEventPage: React.FC = () => {
             </div>
           </div>
         );
-      case 3:
+      case 2:
         return (
           <div className="space-y-10">
             <div className="text-center mb-12">
@@ -1074,7 +909,7 @@ export const CreateRecurringEventPage: React.FC = () => {
             </div>
           </div>
         );
-      case 4:
+      case 3:
         return (
           <div className="space-y-10">
             <div className="text-center mb-12">
@@ -1360,7 +1195,7 @@ export const CreateRecurringEventPage: React.FC = () => {
             </div>
           </div>
         );
-      case 5:
+      case 4:
         return (
           <div className="space-y-10">
             <div className="text-center mb-12">
@@ -1483,85 +1318,7 @@ export const CreateRecurringEventPage: React.FC = () => {
             </div>
           </div>
         );
-      case 6:
-        return (
-          <div className="space-y-10">
-            <div className="text-center mb-12">
-              <div className="w-16 h-16 bg-gradient-to-br from-brand-blue-500 to-brand-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-              </div>
-              <h2 className="text-3xl font-bold text-brand-dark-900 mb-4">Bank Account Details</h2>
-              <p className="text-lg text-brand-dark-600">Secure payment processing information</p>
-            </div>
-
-            <div className="space-y-6">
-              {/* Account Holder Name */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Account Holder Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={vendor?.account_holder_name || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Account holder name as per bank records"
-                />
-              </div>
-
-              {/* Bank Name */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Bank Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={vendor?.bank_name || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="e.g., State Bank of India"
-                />
-              </div>
-
-              {/* Account Number */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  Account Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={vendor?.account_number || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Enter account number"
-                  maxLength={18}
-                />
-              </div>
-
-              {/* IFSC Code */}
-              <div>
-                <label className="block text-sm font-medium text-brand-dark-900 mb-3">
-                  IFSC Code <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={vendor?.ifsc_code || ''}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-0 focus:border-brand-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="e.g., SBIN0000123"
-                  maxLength={11}
-                />
-              </div>
-            </div>
-          </div>
-        );
-      case 7:
+      case 5:
         return (
           <div className="space-y-10">
             <div className="text-center mb-12">
@@ -1644,53 +1401,59 @@ export const CreateRecurringEventPage: React.FC = () => {
               <p className="text-blue-100 text-lg">Build sustainable revenue with recurring bookings</p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-blue-200 mb-1">Step {currentStep} of {steps.length}</div>
-              <div className="text-2xl font-bold">{Math.round((currentStep / steps.length) * 100)}%</div>
+              <div className="text-sm text-blue-200 mb-1">Step {Math.max(currentStep, 1)} of {steps.length}</div>
+              <div className="text-2xl font-bold">{Math.round((Math.max(currentStep, 1) / steps.length) * 100)}%</div>
             </div>
           </div>
 
           {/* Step Indicators */}
           <div className="flex items-center justify-between">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex-1 flex items-center">
-                <div className="flex items-center w-full">
-                  <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-                    currentStep > step.id 
-                      ? 'bg-white border-white text-brand-blue-600' 
-                      : currentStep === step.id 
-                      ? 'bg-brand-blue-500 border-white text-white ring-4 ring-white/30' 
-                      : 'bg-transparent border-white/40 text-white/60'
-                  }`}>
-                    {currentStep > step.id ? (
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <span className="text-sm font-semibold">{step.id}</span>
+            {steps.map((step, index) => {
+              // Map currentStep (0-5) to visual steps (1-5)
+              // Step 0 (business verification) maps to step 1 in visual
+              const visualCurrentStep = Math.max(currentStep, 1);
+              
+              return (
+                <div key={step.id} className="flex-1 flex items-center">
+                  <div className="flex items-center w-full">
+                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
+                      visualCurrentStep > step.id 
+                        ? 'bg-white border-white text-brand-blue-600' 
+                        : visualCurrentStep === step.id 
+                        ? 'bg-brand-blue-500 border-white text-white ring-4 ring-white/30' 
+                        : 'bg-transparent border-white/40 text-white/60'
+                    }`}>
+                      {visualCurrentStep > step.id ? (
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <span className="text-sm font-semibold">{step.id}</span>
+                      )}
+                    </div>
+
+                    <div className="ml-3 flex-1">
+                      <div className={`text-sm font-semibold transition-colors ${
+                        visualCurrentStep >= step.id ? 'text-white' : 'text-white/60'
+                      }`}>
+                        {step.name}
+                      </div>
+                      <div className={`text-xs transition-colors ${
+                        visualCurrentStep >= step.id ? 'text-blue-100' : 'text-white/40'
+                      }`}>
+                        {step.description}
+                      </div>
+                    </div>
+
+                    {index < steps.length - 1 && (
+                      <div className={`h-0.5 w-8 mx-4 transition-all duration-300 ${
+                        visualCurrentStep > step.id ? 'bg-white' : 'bg-white/20'
+                      }`} />
                     )}
                   </div>
-
-                  <div className="ml-3 flex-1">
-                    <div className={`text-sm font-semibold transition-colors ${
-                      currentStep >= step.id ? 'text-white' : 'text-white/60'
-                    }`}>
-                      {step.name}
-                    </div>
-                    <div className={`text-xs transition-colors ${
-                      currentStep >= step.id ? 'text-blue-100' : 'text-white/40'
-                    }`}>
-                      {step.description}
-                    </div>
-                  </div>
-
-                  {index < steps.length - 1 && (
-                    <div className={`h-0.5 w-8 mx-4 transition-all duration-300 ${
-                      currentStep > step.id ? 'bg-white' : 'bg-white/20'
-                    }`} />
-                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

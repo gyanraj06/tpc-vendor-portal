@@ -305,7 +305,7 @@ export class EventService {
         };
       }
 
-      const response = await fetch(`${this.API_BASE_URL}/events/create`, {
+      const response = await fetch(`${this.API_BASE_URL}/api/events/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -419,7 +419,7 @@ export class EventService {
 
       // Make API call to get vendor events
       const response = await fetch(
-        `${this.API_BASE_URL}/events/getevent/vendor`,
+        `${this.API_BASE_URL}/api/events/getevent/vendor`,
         {
           method: "GET",
           headers: {
@@ -489,7 +489,7 @@ export class EventService {
       }
 
       // Make API call to get specific listing
-      const response = await fetch(`${this.API_BASE_URL}/events/${id}`, {
+      const response = await fetch(`${this.API_BASE_URL}/api/events/${id}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -555,7 +555,7 @@ export class EventService {
       }
 
       // Make API call to delete event
-      const response = await fetch(`${this.API_BASE_URL}/events/delete/${id}`, {
+      const response = await fetch(`${this.API_BASE_URL}/api/events/delete/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -631,7 +631,7 @@ export class EventService {
       }
 
       // Make API call to update event
-      const response = await fetch(`${this.API_BASE_URL}/events/update/${id}`, {
+      const response = await fetch(`${this.API_BASE_URL}/api/events/update/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

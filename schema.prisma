@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model articles {
+  slug         String    @id @db.VarChar(200)
+  title        String    @db.VarChar(200)
+  content      String
+  excerpt      String?
+  image_url    String?   @db.VarChar(500)
+  category     String    @db.VarChar(100)
+  published    Boolean?  @default(false)
+  published_at DateTime? @db.Timestamp(6)
+  tags         String[]
+  author       String    @db.VarChar(100)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model events {
+  id                         String          @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vendor_id                  String          @db.Uuid
+  event_name                 String
+  tagline                    String?
+  category                   event_category
+  event_format               event_format
+  short_description          String
+  long_description           String
+  date                       DateTime
+  start_time                 String
+  duration                   Float
+  city                       String
+  state                      String
+  venue                      String
+  full_address               String
+  landmark                   String?
+  google_map_link            String?
+  pricing_type               pricing_type
+  fixed_price                Float?
+  tiers                      Json?
+  referral_codes             Json?
+  max_participants           Int
+  booking_closure            Int
+  banner_image               String?
+  banner_file                String?
+  event_website              String?
+  instagram                  String?
+  twitter                    String?
+  contact_number             String
+  contact_name               String
+  beneficiary_name           String
+  account_type               account_type
+  bank_name                  String
+  account_number             String
+  bank_ifsc                  String
+  pan_number                 String?
+  gstin_number               String?
+  upi_id                     String?
+  refund_policy              refund_policy
+  guidelines                 String?
+  custom_note                String?
+  need_content_help          yes_no?
+  need_creator_collaboration yes_no?
+  whatsapp_notifications     Boolean?        @default(true)
+  email_reports              Boolean?        @default(true)
+  automatic_reminders        Boolean?        @default(true)
+  wheelchair_accessible      Boolean?        @default(false)
+  women_only                 Boolean?        @default(false)
+  pet_friendly               Boolean?        @default(false)
+  languages_spoken           String?
+  faqs                       String?
+  agree_to_terms             Boolean
+  created_at                 DateTime        @default(now())
+  updated_at                 DateTime        @default(now())
+  status                     status_type     @default(active)
+  vendor_profiles            vendor_profiles @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model testimonials {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @db.VarChar(100)
+  role        String?   @db.VarChar(100)
+  testimonial String
+  avatar_url  String?   @db.VarChar(500)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model vendor_profiles {
+  id                                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                                 String?
+  phone                                String?            @unique
+  address                              String?
+  vendor_type                          String?
+  avatar_url                           String?
+  is_first_login                       Boolean
+  business_name                        String?            @db.VarChar(255)
+  legal_name                           String?            @db.VarChar(255)
+  business_type                        String?            @db.VarChar(50)
+  business_registration_document       String?            @db.VarChar(500)
+  website_or_social_link               String?            @db.VarChar(500)
+  registered_address                   String?
+  authorized_contact_person_name       String?            @db.VarChar(255)
+  contact_phone_number                 String?            @db.VarChar(20)
+  contact_email                        String?            @db.VarChar(255)
+  id_proof_document                    String?            @db.VarChar(500)
+  account_holder_name                  String?            @db.VarChar(255)
+  bank_name                            String?            @db.VarChar(255)
+  account_number                       String?            @db.VarChar(50)
+  ifsc_code                            String?            @db.VarChar(11)
+  business_details_verified            Boolean?           @default(false)
+  business_verification_status         String?            @default("pending") @db.VarChar(20)
+  business_verification_completed_at   DateTime?          @db.Timestamp(6)
+  business_verification_reminder_shown Boolean?           @default(false)
+  events                               events[]
+  recurring_events                     recurring_events[]
+
+  @@index([business_details_verified], map: "idx_vendor_profiles_business_verified")
+  @@index([business_verification_status], map: "idx_vendor_profiles_verification_status")
+}
+
+model events_whatsapp_sent {
+  id             BigInt    @id @default(autoincrement())
+  event_id       BigInt
+  contact_number String
+  sent_at        DateTime? @default(now()) @db.Timestamptz(6)
+  message_status String?   @default("sent")
+
+  @@unique([event_id, contact_number])
+  @@index([contact_number], map: "idx_events_whatsapp_contact")
+  @@index([event_id], map: "idx_events_whatsapp_event_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model recurring_events {
+  id                              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vendor_id                       String              @db.Uuid
+  primary_category                recurring_category
+  sub_category                    String              @db.VarChar(200)
+  recurrence_type                 recurrence_type
+  days_of_week                    String[]
+  time_slots                      Json
+  location_type                   location_type
+  itinerary                       Json?
+  event_type                      event_type
+  ticket_price                    Decimal?            @db.Decimal(10, 2)
+  ticket_type                     ticket_type
+  add_on_services                 Json?
+  max_participants_per_occurrence Int?
+  booking_closure_before_hours    Int                 @default(1)
+  coupons                         Json?
+  refund_policy                   refund_policy       @default(no_refund)
+  cancellation_policy             cancellation_policy @default(none)
+  custom_note                     String?
+  emergency_contact_number        String?             @db.VarChar(20)
+  has_liability_insurance         liability_insurance
+  experience_photo_urls           String[]
+  agree_to_terms                  Boolean             @default(false)
+  status                          status_type?        @default(active)
+  created_at                      DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at                      DateTime?           @default(now()) @db.Timestamptz(6)
+  event_name                      String
+  description                     String
+  event_address                   Json
+  vendor_profiles                 vendor_profiles     @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status], map: "idx_recurring_events_status")
+  @@index([vendor_id], map: "idx_recurring_events_vendor_id")
+}
+
+enum account_type {
+  salary
+  saving
+  nri
+}
+
+enum cancellation_policy {
+  flexible_any
+  moderate_24hr
+  strict_48hr
+  none
+}
+
+enum event_category {
+  comedy
+  workshop
+  music
+  dance
+  theater
+  cultural
+  educational
+  networking
+  other
+}
+
+enum event_format {
+  offline
+  online
+  hybrid
+}
+
+enum event_type {
+  paid
+  free
+}
+
+enum liability_insurance {
+  has_insurance
+  no_insurance
+  in_progress
+  planning
+}
+
+enum location_type {
+  fixed
+  itinerary
+  multiple
+}
+
+enum pricing_type {
+  fixed
+  tiered
+}
+
+enum recurrence_frequency {
+  every_week
+  every_2_weeks
+  every_month
+  seasonal
+  custom
+}
+
+enum recurrence_type {
+  daily
+  weekly
+  monthly
+}
+
+enum recurring_category {
+  adventure
+  cultural
+  food
+  wellness
+  art
+  photography
+  music
+  nature
+  educational
+  other
+}
+
+enum refund_policy {
+  no_refund @map("no-refund")
+  hr48_full @map("hr48-full")
+  hr24_full @map("hr24-full")
+}
+
+enum status_type {
+  active
+  inactive
+  expired
+}
+
+enum ticket_type {
+  individual
+  group
+  both
+}
+
+enum yes_no {
+  yes
+  no
+}
